@@ -1,0 +1,2373 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aplikacja Administracyjna Sprzedaży – Wanicki</title>
+<style>
+  :root {
+    --green: #2d6a2d;
+    --green-light: #4a9e4a;
+    --green-pale: #e8f5e8;
+    --gray-100: #f5f6f8;
+    --gray-200: #e9ebef;
+    --gray-300: #d0d4dc;
+    --gray-500: #8a91a0;
+    --gray-700: #444c5c;
+    --gray-900: #1a1f2e;
+    --blue: #1e6bb8;
+    --blue-pale: #e8f0fb;
+    --orange: #d97706;
+    --orange-pale: #fef3c7;
+    --red: #c0392b;
+    --red-pale: #fdecea;
+    --purple: #7c3aed;
+    --purple-pale: #ede9fe;
+    --teal: #0f766e;
+    --teal-pale: #ccfbf1;
+    --shadow: 0 1px 4px rgba(0,0,0,0.10);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.13);
+    --radius: 8px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--gray-100); color: var(--gray-900); font-size: 13px; }
+
+  /* ─── TOPBAR ─── */
+  .topbar {
+    background: var(--green);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    height: 52px;
+    gap: 16px;
+    box-shadow: var(--shadow-lg);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-logo { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; flex: none; }
+  .topbar-logo span { opacity: 0.7; font-weight: 400; font-size: 13px; margin-left: 8px; }
+  .topbar-sep { width: 1px; height: 28px; background: rgba(255,255,255,0.25); }
+  .topbar-title { font-size: 14px; opacity: 0.85; }
+  .topbar-spacer { flex: 1; }
+  .role-select {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .role-select option { background: #2d6a2d; color: #fff; }
+  .avatar {
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+  }
+
+  /* ─── LAYOUT ─── */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .panel { width: 420px; border-left: 1px solid var(--gray-200); background: #fff; overflow-y: auto; flex-shrink: 0; transition: width 0.2s; }
+  .panel.closed { width: 0; border: none; overflow: hidden; }
+
+  /* ─── PROCESS STEPPER ─── */
+  .stepper-bar {
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 12px 20px 10px;
+    overflow-x: auto;
+  }
+  .stepper { display: flex; gap: 0; align-items: center; min-width: max-content; }
+  .step {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 14px 5px 10px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    font-size: 11.5px;
+    color: var(--gray-500);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .step:not(:first-child) { margin-left: -1px; }
+  .step:hover { background: var(--green-pale); border-color: var(--green-light); color: var(--green); z-index: 1; }
+  .step.active { background: var(--green); border-color: var(--green); color: #fff; z-index: 2; }
+  .step.active .step-count { background: rgba(255,255,255,0.3); }
+  .step-num {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--gray-200);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
+  }
+  .step.active .step-num { background: rgba(255,255,255,0.3); color: #fff; }
+  .step-label { white-space: nowrap; font-weight: 500; }
+  .step-count {
+    background: var(--gray-200);
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gray-700);
+  }
+  .step.active .step-count { background: rgba(255,255,255,0.25); color: #fff; }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar {
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 10px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .search-box {
+    flex: 1; min-width: 200px;
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    padding: 6px 12px;
+    background: var(--gray-100);
+  }
+  .search-box input {
+    border: none; background: transparent;
+    font-size: 13px; font-family: var(--font);
+    outline: none; flex: 1; color: var(--gray-900);
+  }
+  .search-box svg { color: var(--gray-500); flex-shrink: 0; }
+  .btn {
+    padding: 7px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--gray-300);
+    background: #fff;
+    font-size: 13px;
+    font-family: var(--font);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.15s;
+    color: var(--gray-700);
+    font-weight: 500;
+  }
+  .btn:hover { background: var(--gray-100); }
+  .btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+  .btn.primary:hover { background: var(--green-light); }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .filter-select {
+    padding: 6px 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: var(--font);
+    background: #fff;
+    cursor: pointer;
+    color: var(--gray-700);
+  }
+
+  /* ─── TABLE ─── */
+  .table-wrap { flex: 1; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--gray-100); position: sticky; top: 0; z-index: 10; }
+  th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gray-500);
+    border-bottom: 2px solid var(--gray-200);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { color: var(--gray-700); }
+  th .sort-icon { opacity: 0.4; font-size: 10px; }
+  th.sorted { color: var(--green); }
+  th.sorted .sort-icon { opacity: 1; }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--gray-200);
+    vertical-align: middle;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  tbody tr { cursor: pointer; transition: background 0.1s; }
+  tbody tr:hover { background: var(--green-pale); }
+  tbody tr.selected { background: var(--green-pale); border-left: 3px solid var(--green); }
+  .no-results { text-align: center; padding: 60px 20px; color: var(--gray-500); }
+
+  /* ─── STATUS BADGE ─── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+  .badge-rezerwacja { background: var(--orange-pale); color: var(--orange); }
+  .badge-umowa      { background: var(--blue-pale);   color: var(--blue); }
+  .badge-zadatek    { background: var(--purple-pale);  color: var(--purple); }
+  .badge-zamowione  { background: #fff3e0;             color: #b45309; }
+  .badge-dostarczone{ background: var(--teal-pale);    color: var(--teal); }
+  .badge-zafakturowane { background: #e8f5e8;          color: #2d6a2d; }
+  .badge-wydane     { background: #f0fdf4;             color: #166534; border: 1px solid #86efac; }
+  .badge-dostepna   { background: var(--gray-100);     color: var(--gray-500); }
+
+  /* ─── DETAIL PANEL ─── */
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .panel-header-info { flex: 1; min-width: 0; }
+  .panel-model { font-size: 16px; font-weight: 700; color: var(--gray-900); }
+  .panel-vin { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+  .panel-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--gray-500); font-size: 18px; line-height: 1;
+    padding: 2px; flex-shrink: 0;
+  }
+  .panel-close:hover { color: var(--gray-900); }
+
+  .panel-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-100);
+  }
+  .panel-tab {
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-500);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .panel-tab.active { color: var(--green); border-bottom-color: var(--green); background: #fff; }
+  .panel-tab:hover:not(.active) { color: var(--gray-700); }
+
+  .panel-body { padding: 16px 20px; }
+  .panel-section { margin-bottom: 20px; }
+  .panel-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--gray-500);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .field {
+    background: var(--gray-100);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .field.full { grid-column: 1 / -1; }
+  .field-label { font-size: 10px; color: var(--gray-500); font-weight: 600; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .field-value { font-size: 13px; color: var(--gray-900); font-weight: 500; }
+  .field-value.muted { color: var(--gray-500); font-style: italic; }
+  .field-value.highlight { color: var(--green); font-weight: 700; }
+  .field-value.warning { color: var(--orange); }
+  .field-value.danger { color: var(--red); }
+
+  /* ─── PROCESS TIMELINE ─── */
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 4px; bottom: 4px; width: 2px; background: var(--gray-200); }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-dot {
+    position: absolute;
+    left: -24px; top: 2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--gray-200);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px var(--gray-200);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px;
+  }
+  .tl-dot.done { background: var(--green); box-shadow: 0 0 0 2px var(--green-pale); }
+  .tl-dot.current { background: var(--blue); box-shadow: 0 0 0 2px var(--blue-pale); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 2px var(--blue-pale)} 50%{box-shadow:0 0 0 5px var(--blue-pale)} }
+  .tl-label { font-size: 12px; font-weight: 600; color: var(--gray-700); }
+  .tl-label.done { color: var(--green); }
+  .tl-label.current { color: var(--blue); }
+  .tl-sub { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+  .tl-date { font-size: 10px; color: var(--gray-500); margin-top: 4px; }
+
+  /* ─── ACTION BUTTONS PANEL ─── */
+  .panel-actions {
+    padding: 12px 20px;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .btn-sm {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--gray-300);
+    background: #fff;
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s;
+    color: var(--gray-700);
+  }
+  .btn-sm:hover { background: var(--gray-100); }
+  .btn-sm.primary { background: var(--green); border-color: var(--green); color: #fff; }
+  .btn-sm.primary:hover { background: var(--green-light); }
+  .btn-sm.blue { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn-sm.orange { border-color: var(--orange); color: var(--orange); }
+
+  /* ─── NOTIFICATION TOAST ─── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--gray-900); color: #fff;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    box-shadow: var(--shadow-lg);
+    opacity: 0; transform: translateY(10px);
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 999;
+    max-width: 320px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.green { background: var(--green); }
+
+  /* ─── STATS BAR ─── */
+  .stats-bar {
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 8px 20px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+  .stat { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .stat-num { font-weight: 700; font-size: 15px; color: var(--gray-900); }
+  .stat-label { color: var(--gray-500); }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ─── MODAL (Dodaj maszynę) ─── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    padding: 28px;
+    width: 560px;
+    max-width: calc(100vw - 40px);
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    transform: scale(0.95); transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: scale(1); }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.3px; }
+  .form-input {
+    padding: 8px 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-pale); }
+  .modal-footer { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ─── CHIP (badge w select) ─── */
+  .chip {
+    display: inline-block;
+    background: var(--green-pale);
+    color: var(--green);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .tag-hidden { display: none; }
+  .restricted { color: var(--gray-300) !important; }
+
+  /* ─── MAIN NAVIGATION ─── */
+  .main-nav {
+    background: #fff;
+    border-bottom: 2px solid var(--gray-200);
+    padding: 0 20px;
+    display: flex;
+    flex-shrink: 0;
+  }
+  .main-nav-tab {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-500);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .main-nav-tab:hover:not(.active) { color: var(--gray-700); background: var(--gray-100); }
+  .main-nav-tab.active { color: var(--green); border-bottom-color: var(--green); }
+  .nav-count {
+    background: var(--gray-200);
+    color: var(--gray-700);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .main-nav-tab.active .nav-count { background: var(--green-pale); color: var(--green); }
+
+  /* ─── VIEWS ─── */
+  .views-container { display: flex; flex-direction: column; height: calc(100vh - 96px); overflow: hidden; }
+  .view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  .view.active { display: flex; }
+
+  /* ─── DOCUMENT / CLIENT BADGES ─── */
+  .badge-doc-umowa    { background: var(--blue-pale);   color: var(--blue); }
+  .badge-doc-faktura  { background: var(--green-pale);  color: var(--green); }
+  .badge-doc-protokol { background: var(--purple-pale); color: var(--purple); }
+  .badge-doc-cmr      { background: var(--teal-pale);   color: var(--teal); }
+  .badge-doc-inne     { background: var(--gray-100);    color: var(--gray-500); }
+  .badge-oferta       { background: #fef3c7;            color: #92400e; }
+
+  /* ─── WIZARD SPRZEDAŻ ─── */
+  .wiz-bar {
+    display: flex; align-items: center; gap: 0;
+    padding: 20px 28px 0; background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    flex-shrink: 0;
+  }
+  .wiz-step {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 4px 16px;
+    font-size: 12px; font-weight: 600;
+    color: var(--gray-300); cursor: default;
+    border-bottom: 3px solid transparent; margin-bottom: -1px;
+  }
+  .wiz-step.active  { color: var(--green); border-bottom-color: var(--green); }
+  .wiz-step.done    { color: var(--gray-500); cursor: pointer; }
+  .wiz-step.done:hover { color: var(--green); }
+  .wiz-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+    background: var(--gray-200); color: var(--gray-500);
+  }
+  .wiz-step.active .wiz-num  { background: var(--green); color: #fff; }
+  .wiz-step.done   .wiz-num  { background: var(--green); color: #fff; }
+  .wiz-arrow { color: var(--gray-300); padding: 0 10px 16px; font-size: 14px; }
+
+  .wiz-body { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  /* machine cards */
+  .mcard {
+    border: 2px solid var(--gray-200); border-radius: 10px;
+    padding: 16px; cursor: pointer; transition: all 0.15s;
+    background: #fff; margin-bottom: 12px;
+  }
+  .mcard:hover { border-color: var(--green-light); background: var(--green-pale); }
+  .mcard.selected { border-color: var(--green); background: var(--green-pale); }
+  .mcard-title { font-size: 15px; font-weight: 700; color: var(--gray-900); margin-bottom: 6px; }
+  .mcard-meta  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 0; }
+  .mcard-config { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--green-light); }
+  .mcard-config-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--green); margin-bottom: 10px; }
+
+  /* summary boxes */
+  .sum-box {
+    border: 1px solid var(--gray-200); border-radius: 8px;
+    padding: 14px 16px; background: var(--gray-100); margin-bottom: 12px;
+  }
+  .sum-box-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-500); margin-bottom: 8px; }
+  .sum-box-main  { font-size: 14px; font-weight: 700; color: var(--gray-900); }
+  .sum-box-sub   { font-size: 12px; color: var(--gray-500); margin-top: 3px; }
+
+  .wiz-footer {
+    padding: 14px 28px; border-top: 1px solid var(--gray-200);
+    display: flex; gap: 10px; align-items: center; background: #fff; flex-shrink: 0;
+  }
+  .wiz-footer-spacer { flex: 1; }
+
+  /* client row in step 2 */
+  .clist-item {
+    padding: 10px 14px; cursor: pointer; border-radius: 6px;
+    margin-bottom: 4px; transition: background 0.1s; border: 2px solid transparent;
+  }
+  .clist-item:hover   { background: var(--gray-100); }
+  .clist-item.selected { background: var(--green-pale); border-color: var(--green); }
+  .badge-rks          { background: var(--purple-pale); color: var(--purple); }
+  .badge-oplacona     { background: var(--green-pale);  color: var(--green); }
+  .badge-oczekuje     { background: var(--orange-pale); color: var(--orange); }
+  .badge-po-terminie  { background: var(--red-pale);    color: var(--red); }
+
+  /* ─── CONFIG OPTIONS ─── */
+  .config-option {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .config-option:hover { background: var(--green-pale); border-color: var(--green-light); }
+  .config-option.selected { background: var(--green-pale); border-color: var(--green); }
+  .config-option input[type=checkbox] { accent-color: var(--green); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+  .config-option-label { flex: 1; font-size: 13px; font-weight: 500; }
+  .config-option-price { font-size: 13px; font-weight: 700; color: var(--green); white-space: nowrap; }
+  .config-total {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; background: var(--gray-100); border-radius: 8px; margin-top: 16px;
+  }
+  .config-total-label { font-weight: 600; color: var(--gray-700); }
+  .config-total-price { font-size: 17px; font-weight: 700; color: var(--green); }
+
+  /* ─── CLIENT LIST IN MODAL ─── */
+  .client-list-item {
+    padding: 10px 14px; cursor: pointer;
+    border-bottom: 1px solid var(--gray-200);
+    transition: background 0.1s;
+  }
+  .client-list-item:hover { background: var(--gray-100); }
+  .client-list-item.selected { background: var(--green-pale); border-left: 3px solid var(--green); }
+  .client-list-item-name { font-weight: 600; font-size: 13px; }
+  .client-list-item-sub { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+
+  /* ─── CONTRACT OVERLAY ─── */
+  .contract-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 400;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    overflow-y: auto;
+  }
+  .contract-overlay.open { opacity: 1; pointer-events: auto; }
+  .contract-toolbar {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--gray-900); color: #fff;
+    padding: 10px 20px;
+    display: flex; gap: 10px; align-items: center;
+    flex-shrink: 0;
+  }
+  .contract-toolbar-title { font-weight: 600; font-size: 14px; }
+  .contract-toolbar-spacer { flex: 1; }
+  .contract-doc {
+    background: #fff;
+    width: 760px; max-width: calc(100vw - 40px);
+    margin: 24px auto 48px;
+    padding: 56px 64px;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.4);
+    font-family: 'Times New Roman', serif;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #111;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">Wanicki <span>AGRO</span></div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-title">Administracja Sprzedaży</div>
+  <div class="topbar-spacer"></div>
+  <label style="color:rgba(255,255,255,0.8);font-size:12px;">Rola:</label>
+  <select class="role-select" id="roleSelect" onchange="changeRole(this.value)">
+    <option value="AG">AG (Agro Logistyka)</option>
+    <option value="RKS">RKS (Reg. Kierownik Sprzedaży)</option>
+    <option value="Pozostale">Pozostałe firmy</option>
+    <option value="Handlowiec" selected>Handlowiec</option>
+    <option value="Serwis">Serwis</option>
+  </select>
+  <div class="avatar" id="avatarEl">HW</div>
+</div>
+
+<!-- MAIN NAV -->
+<div class="main-nav">
+  <div class="main-nav-tab active" onclick="switchView('maszyny', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Maszyny
+    <span class="nav-count" id="navCountMaszyny">8</span>
+  </div>
+  <div class="main-nav-tab" onclick="switchView('klienci', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Klienci
+    <span class="nav-count" id="navCountKlienci">7</span>
+  </div>
+  <div class="main-nav-tab" onclick="switchView('dokumenty', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Dokumenty
+    <span class="nav-count" id="navCountDokumenty">12</span>
+  </div>
+  <div class="main-nav-tab" id="navTabSprzedaz" style="display:none" onclick="switchView('sprzedaz', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Sprzedaż
+  </div>
+  <div class="main-nav-tab" id="navTabUzytkownicy" style="display:none" onclick="switchView('uzytkownicy', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><line x1="18" y1="3" x2="18" y2="9"/><line x1="15" y1="6" x2="21" y2="6"/></svg>
+    Użytkownicy
+    <span class="nav-count" id="navCountUzytkownicy">11</span>
+  </div>
+</div>
+
+<div class="views-container">
+<div id="view-maszyny" class="view active">
+<div class="layout">
+  <div class="main" id="mainArea">
+
+    <!-- PROCESS STEPPER -->
+    <div class="stepper-bar">
+      <div class="stepper" id="stepper"></div>
+    </div>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar" id="statsBar"></div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-box">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="searchInput" type="text" placeholder="Szukaj po kliencie, modelu, VIN, handlowcu..." oninput="renderTable()">
+      </div>
+      <select class="filter-select" id="statusFilter" onchange="renderTable()">
+        <option value="">Wszystkie statusy</option>
+        <option value="Dostępna">Dostępna</option>
+        <option value="Oferta">Oferta (oczekuje na RKS)</option>
+        <option value="Rezerwacja">Rezerwacja</option>
+        <option value="Umowa">Umowa</option>
+        <option value="Umowa - zadatek">Umowa – zadatek</option>
+        <option value="Umowa - zamówione">Umowa – zamówione</option>
+        <option value="Umowa - Dostarczone">Umowa – Dostarczone</option>
+        <option value="Umowa - Zafakturowane">Umowa – Zafakturowane</option>
+        <option value="Umowa - wydane">Umowa – wydane</option>
+      </select>
+      <select class="filter-select" id="dzialFilter" onchange="renderTable()">
+        <option value="">Wszystkie działy</option>
+        <option value="AG">AG</option>
+        <option value="TURF">TURF</option>
+        <option value="Kramer">Kramer</option>
+      </select>
+      <button class="btn primary" id="btnNowaMaszyna" onclick="openModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nowa maszyna
+      </button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr id="tableHead"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="panel closed" id="detailPanel">
+    <div class="panel-header">
+      <div class="panel-header-info">
+        <div class="panel-model" id="panelModel">–</div>
+        <div class="panel-vin" id="panelVin">VIN: –</div>
+      </div>
+      <button class="panel-close" onclick="closePanel()">✕</button>
+    </div>
+    <div class="panel-tabs">
+      <div class="panel-tab active" onclick="switchTab('dane', this)">Dane</div>
+      <div class="panel-tab" onclick="switchTab('proces', this)">Proces</div>
+      <div class="panel-tab" onclick="switchTab('finansowe', this)">Finansowe</div>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+    <div class="panel-actions" id="panelActions"></div>
+  </div>
+</div>
+</div><!-- /view-maszyny -->
+
+<!-- KLIENCI VIEW -->
+<div id="view-klienci" class="view">
+  <div class="toolbar">
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="clientSearch" type="text" placeholder="Szukaj klienta, NIP, handlowca..." oninput="renderClients()">
+    </div>
+    <select class="filter-select" id="clientDzialFilter" onchange="renderClients()">
+      <option value="">Wszystkie działy</option>
+      <option value="AG">AG</option>
+      <option value="TURF">TURF</option>
+      <option value="Kramer">Kramer</option>
+    </select>
+    <button class="btn primary" onclick="showToast('Dodawanie klienta – wkrótce dostępne')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nowy klient
+    </button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nazwa klienta</th>
+          <th>NIP</th>
+          <th>Miejscowość</th>
+          <th>Handlowiec</th>
+          <th>Dział</th>
+          <th>Umów</th>
+          <th>Ostatnia aktywność</th>
+        </tr>
+      </thead>
+      <tbody id="clientBody"></tbody>
+    </table>
+  </div>
+</div><!-- /view-klienci -->
+
+<!-- DOKUMENTY VIEW -->
+<div id="view-dokumenty" class="view">
+  <div class="toolbar">
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="docSearch" type="text" placeholder="Szukaj dokumentu, klienta, maszyny..." oninput="renderDocuments()">
+    </div>
+    <select class="filter-select" id="docTypFilter" onchange="renderDocuments()">
+      <option value="">Wszystkie typy</option>
+      <option value="Umowa">Umowa</option>
+      <option value="Faktura">Faktura</option>
+      <option value="Protokół">Protokół</option>
+      <option value="CMR">CMR</option>
+    </select>
+    <button class="btn primary" onclick="showToast('Dodawanie dokumentu – wkrótce dostępne')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nowy dokument
+    </button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nr dokumentu</th>
+          <th>Typ</th>
+          <th>Klient</th>
+          <th>Maszyna</th>
+          <th>Data</th>
+          <th>Status</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody id="docBody"></tbody>
+    </table>
+  </div>
+</div><!-- /view-dokumenty -->
+
+<!-- SPRZEDAŻ VIEW (wizard) -->
+<div id="view-sprzedaz" class="view">
+  <div id="wizBar" class="wiz-bar"></div>
+  <div id="wizBody" class="wiz-body"></div>
+  <div id="wizFooter" class="wiz-footer"></div>
+</div><!-- /view-sprzedaz -->
+
+<!-- UŻYTKOWNICY VIEW -->
+<div id="view-uzytkownicy" class="view">
+  <div class="toolbar">
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="userSearch" type="text" placeholder="Szukaj użytkownika, e-maila..." oninput="renderUsers()">
+    </div>
+    <select class="filter-select" id="userRoleFilter" onchange="renderUsers()">
+      <option value="">Wszystkie role</option>
+      <option value="Handlowiec">Handlowiec</option>
+      <option value="RKS">RKS</option>
+      <option value="AG">AG (Agro Logistyka)</option>
+      <option value="Serwis">Serwis</option>
+    </select>
+    <select class="filter-select" id="userStatusFilter" onchange="renderUsers()">
+      <option value="">Wszystkie statusy</option>
+      <option value="Aktywny">Aktywni</option>
+      <option value="Nieaktywny">Nieaktywni</option>
+    </select>
+    <button class="btn primary" onclick="showToast('Dodawanie użytkownika – wkrótce dostępne')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nowy użytkownik
+    </button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Imię i nazwisko</th>
+          <th>Rola</th>
+          <th>Dział</th>
+          <th>E-mail</th>
+          <th>Telefon</th>
+          <th>Ostatnie logowanie</th>
+          <th>Status</th>
+          <th style="width:100px"></th>
+        </tr>
+      </thead>
+      <tbody id="userBody"></tbody>
+    </table>
+  </div>
+</div><!-- /view-uzytkownicy -->
+
+</div><!-- /views-container -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title">Nowa maszyna / umowa</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Model</label>
+        <input class="form-input" id="f_model" placeholder="np. John Deere 6R 150">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Producent</label>
+        <input class="form-input" id="f_producent" placeholder="np. John Deere">
+      </div>
+      <div class="form-group">
+        <label class="form-label">VIN / Nr. seryjny</label>
+        <input class="form-input" id="f_vin" placeholder="1RW6150RPPK000001">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dział</label>
+        <select class="form-input" id="f_dzial">
+          <option>AG</option><option>TURF</option><option>Kramer</option><option>Pozostałe</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Handlowiec</label>
+        <input class="form-input" id="f_handlowiec" placeholder="np. Jan Kowalski">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Klient</label>
+        <input class="form-input" id="f_klient" placeholder="Nazwa firmy lub osoby">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cena z konfiguratora (PLN)</label>
+        <input class="form-input" id="f_cena" type="number" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Magazyn</label>
+        <select class="form-input" id="f_magazyn">
+          <option>Bielsko-Biała</option><option>Kraków</option><option>Katowice</option><option>Rzeszów</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rodzaj maszyny</label>
+        <select class="form-input" id="f_rodzaj">
+          <option>Ciągnik</option><option>Kombajn</option><option>Przyczepa</option><option>Ładowarka</option><option>Inne</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Demo</label>
+        <select class="form-input" id="f_demo">
+          <option>Nie</option><option>Tak</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Komentarz</label>
+        <input class="form-input" id="f_komentarz" placeholder="Dodatkowe informacje...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Anuluj</button>
+      <button class="btn primary" onclick="addMachine()">Dodaj maszynę</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Konfiguracja maszyny -->
+<div class="modal-overlay" id="modalConfig">
+  <div class="modal" style="width:620px">
+    <div class="modal-title">Konfiguracja maszyny</div>
+    <div id="configMachineInfo" style="padding:10px 14px;background:var(--gray-100);border-radius:6px;margin-bottom:16px;font-weight:600;color:var(--gray-700);font-size:13px"></div>
+    <div style="max-height:340px;overflow-y:auto" id="configOptionsList"></div>
+    <div class="config-total">
+      <span class="config-total-label">Wyposażenie dodatkowe:</span>
+      <span class="config-total-price" id="configTotalPrice">0 PLN</span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeConfigModal()">Anuluj</button>
+      <button class="btn primary" onclick="saveConfig()">Zapisz konfigurację</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Przypisz klienta -->
+<div class="modal-overlay" id="modalClient">
+  <div class="modal" style="width:580px">
+    <div class="modal-title">Przypisz klienta do maszyny</div>
+    <div class="panel-tabs" style="margin:-4px -28px 20px;border-radius:0">
+      <div class="panel-tab active" id="ctabExisting" onclick="switchClientTab('existing')">Istniejący klient</div>
+      <div class="panel-tab" id="ctabNew" onclick="switchClientTab('new')">+ Nowy klient</div>
+    </div>
+    <div id="clientTabExisting">
+      <div class="search-box" style="margin-bottom:12px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="clientModalSearch" type="text" placeholder="Szukaj klienta..." oninput="renderClientModalList()">
+      </div>
+      <div id="clientModalList" style="max-height:280px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:6px"></div>
+    </div>
+    <div id="clientTabNew" style="display:none">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Nazwa klienta / firmy *</label>
+          <input class="form-input" id="nc_nazwa" placeholder="np. Rolnicze Południe Sp. z o.o.">
+        </div>
+        <div class="form-group">
+          <label class="form-label">NIP</label>
+          <input class="form-input" id="nc_nip" placeholder="000-000-00-00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Miejscowość</label>
+          <input class="form-input" id="nc_miasto" placeholder="np. Kraków">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telefon</label>
+          <input class="form-input" id="nc_tel" placeholder="600-000-000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input class="form-input" id="nc_email" placeholder="kontakt@firma.pl">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dział</label>
+          <select class="form-input" id="nc_dzial">
+            <option>AG</option><option>TURF</option><option>Kramer</option><option>Pozostałe</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Adres</label>
+          <input class="form-input" id="nc_adres" placeholder="ul. Przykładowa 1, 00-000 Miasto">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeClientModal()">Anuluj</button>
+      <button class="btn primary" id="btnAssignClient" onclick="assignClient()">Przypisz klienta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Odrzucenie oferty przez RKS -->
+<div class="modal-overlay" id="modalRksReject">
+  <div class="modal" style="width:480px">
+    <div class="modal-title" style="color:var(--red)">Odrzucenie oferty</div>
+    <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px">Napisz notatkę dla handlowca – podaj powód odrzucenia, żeby mógł poprawić ofertę i wysłać ponownie.</p>
+    <div class="form-group">
+      <label class="form-label">Notatka dla handlowca *</label>
+      <textarea class="form-input" id="rksRejectNote" rows="5"
+        placeholder="np. Rabat zbyt wysoki – maks. akceptowalny to 8%. Proszę o korektę ceny lub skonsultowanie z przełożonym..."
+        style="resize:vertical;font-family:var(--font);line-height:1.5"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeRksRejectModal()">Anuluj</button>
+      <button class="btn" style="background:var(--red);border-color:var(--red);color:#fff" onclick="confirmRksReject()">Odrzuć ofertę</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTRACT OVERLAY -->
+<div class="contract-overlay" id="contractOverlay">
+  <div class="contract-toolbar">
+    <div class="contract-toolbar-title" id="contractTitle">Umowa sprzedaży</div>
+    <div class="contract-toolbar-spacer"></div>
+    <button class="btn-sm blue" onclick="printContract()">Drukuj / Zapisz PDF</button>
+    <button class="btn-sm" onclick="closeContract()" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1)">✕ Zamknij</button>
+  </div>
+  <div class="contract-doc" id="contractDoc"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// DANE DEMO
+// ─────────────────────────────────────────────
+
+const users = [
+  { id:1,  imie:'Adam',      nazwisko:'Nowak',        email:'a.nowak@wanicki.pl',        telefon:'600-123-456', rola:'Handlowiec', dzial:'AG',     status:'Aktywny',    ostatnie_log:'2026-04-14' },
+  { id:2,  imie:'Joanna',    nazwisko:'Krawczyk',     email:'j.krawczyk@wanicki.pl',     telefon:'601-234-567', rola:'Handlowiec', dzial:'AG',     status:'Aktywny',    ostatnie_log:'2026-04-13' },
+  { id:3,  imie:'Piotr',     nazwisko:'Zając',        email:'p.zajac@wanicki.pl',        telefon:'602-345-678', rola:'Handlowiec', dzial:'AG',     status:'Aktywny',    ostatnie_log:'2026-04-12' },
+  { id:4,  imie:'Beata',     nazwisko:'Malinowska',   email:'b.malinowska@wanicki.pl',   telefon:'603-456-789', rola:'Handlowiec', dzial:'AG',     status:'Aktywny',    ostatnie_log:'2026-04-14' },
+  { id:5,  imie:'Maciej',    nazwisko:'Dąbrowski',    email:'m.dabrowski@wanicki.pl',    telefon:'604-567-890', rola:'Handlowiec', dzial:'AG',     status:'Aktywny',    ostatnie_log:'2026-04-11' },
+  { id:6,  imie:'Marek',     nazwisko:'Wieczorek',    email:'m.wieczorek@wanicki.pl',    telefon:'605-678-901', rola:'RKS',        dzial:'AG',     status:'Aktywny',    ostatnie_log:'2026-04-14' },
+  { id:7,  imie:'Anna',      nazwisko:'Kowalczyk',    email:'a.kowalczyk@wanicki.pl',    telefon:'606-789-012', rola:'RKS',        dzial:'AG',     status:'Aktywny',    ostatnie_log:'2026-04-13' },
+  { id:8,  imie:'Łukasz',    nazwisko:'Piwowar',      email:'l.piwowar@wanicki.pl',      telefon:'607-890-123', rola:'RKS',        dzial:'AG',     status:'Aktywny',    ostatnie_log:'2026-04-10' },
+  { id:9,  imie:'Tomasz',    nazwisko:'Wiśniewski',   email:'t.wisniewski@wanicki.pl',   telefon:'609-012-345', rola:'Serwis',     dzial:'Serwis', status:'Aktywny',    ostatnie_log:'2026-04-08' },
+  { id:10, imie:'Marek',     nazwisko:'Sikora',       email:'m.sikora@wanicki.pl',       telefon:'611-222-333', rola:'AG',         dzial:'AG',     status:'Aktywny',    ostatnie_log:'2026-04-12' },
+  { id:11, imie:'Katarzyna', nazwisko:'Lewandowska',  email:'k.lewandowska@wanicki.pl',  telefon:'610-123-456', rola:'Handlowiec', dzial:'AG',     status:'Nieaktywny', ostatnie_log:'2026-02-15' },
+];
+
+const clients = [
+  { id:1, nazwa:'Rolnicze Wierzbice Sp.j.',      nip:'812-234-56-78', miejscowosc:'Wierzbice',     handlowiec:'Adam Nowak',        dzial:'AG',     liczba_umow:1, ostatnia_aktywnosc:'2026-04-01' },
+  { id:2, nazwa:'Gospodarstwo Wiśniewscy',        nip:'651-111-22-33', miejscowosc:'Tuchów',        handlowiec:'Joanna Krawczyk',   dzial:'AG',     liczba_umow:1, ostatnia_aktywnosc:'2026-03-15' },
+  { id:3, nazwa:'Agro Południe Sp. z o.o.',       nip:'722-333-44-55', miejscowosc:'Rzeszów',       handlowiec:'Piotr Zając',       dzial:'AG',     liczba_umow:2, ostatnia_aktywnosc:'2026-02-10' },
+  { id:4, nazwa:'Usługi Komunalne Zabierzów',     nip:'941-444-55-66', miejscowosc:'Zabierzów',     handlowiec:'Beata Malinowska',  dzial:'Kramer', liczba_umow:1, ostatnia_aktywnosc:'2026-03-10' },
+  { id:5, nazwa:'Park Miejski Tarnów',            nip:'873-555-66-77', miejscowosc:'Tarnów',        handlowiec:'Maciej Dąbrowski',  dzial:'TURF',   liczba_umow:1, ostatnia_aktywnosc:'2026-03-05' },
+  { id:6, nazwa:'Rolnik Jan Błaszczyk',           nip:'617-666-77-88', miejscowosc:'Oświęcim',      handlowiec:'Adam Nowak',        dzial:'AG',     liczba_umow:1, ostatnia_aktywnosc:'2026-02-20' },
+  { id:7, nazwa:'Budowa Południe s.c.',           nip:'538-777-88-99', miejscowosc:'Bielsko-Biała', handlowiec:'Beata Malinowska',  dzial:'Kramer', liczba_umow:1, ostatnia_aktywnosc:'2026-03-18' },
+];
+
+const documents = [
+  { id:1,  numer:'AG/2026/041',    typ:'Umowa',    klient:'Rolnicze Wierzbice Sp.j.',      maszyna:'John Deere 6R 150',   data:'2026-02-10', status:'Podpisana' },
+  { id:2,  numer:'FV/2026/1234',   typ:'Faktura',  klient:'Rolnicze Wierzbice Sp.j.',      maszyna:'John Deere 6R 150',   data:'2026-04-05', status:'Oczekuje na płatność' },
+  { id:3,  numer:'PROT/2026/041',  typ:'Protokół', klient:'Rolnicze Wierzbice Sp.j.',      maszyna:'John Deere 6R 150',   data:'2026-04-08', status:'Podpisany' },
+  { id:4,  numer:'AG/2026/018',    typ:'Umowa',    klient:'Agro Południe Sp. z o.o.',      maszyna:'John Deere X9 1100',  data:'2026-01-25', status:'Podpisana' },
+  { id:5,  numer:'KR/2026/005',    typ:'Umowa',    klient:'Usługi Komunalne Zabierzów',    maszyna:'Kramer KL 33.5T',     data:'2026-01-15', status:'Podpisana' },
+  { id:6,  numer:'FV/2026/0987',   typ:'Faktura',  klient:'Usługi Komunalne Zabierzów',    maszyna:'Kramer KL 33.5T',     data:'2026-03-12', status:'Oczekuje na płatność' },
+  { id:7,  numer:'CMR-2026-005',   typ:'CMR',      klient:'Usługi Komunalne Zabierzów',    maszyna:'Kramer KL 33.5T',     data:'2026-03-10', status:'Potwierdzony' },
+  { id:8,  numer:'TF/2026/022',    typ:'Umowa',    klient:'Park Miejski Tarnów',           maszyna:'John Deere ZTrak 930M', data:'2026-03-05', status:'Podpisana' },
+  { id:9,  numer:'AG/2025/198',    typ:'Umowa',    klient:'Rolnik Jan Błaszczyk',          maszyna:'John Deere 5090R',    data:'2025-11-10', status:'Podpisana' },
+  { id:10, numer:'FV/2026/0345',   typ:'Faktura',  klient:'Rolnik Jan Błaszczyk',          maszyna:'John Deere 5090R',    data:'2026-02-20', status:'Opłacona' },
+  { id:11, numer:'CMR-2025-198',   typ:'CMR',      klient:'Rolnik Jan Błaszczyk',          maszyna:'John Deere 5090R',    data:'2026-02-18', status:'Potwierdzony' },
+  { id:12, numer:'KR/2026/011',    typ:'Umowa',    klient:'Budowa Południe s.c.',          maszyna:'Kramer KT337',        data:'2026-03-18', status:'Podpisana' },
+];
+
+const statuses = [
+  'Dostępna','Oferta','Rezerwacja','Umowa','Umowa - zadatek',
+  'Umowa - zamówione','Umowa - Dostarczone','Umowa - Zafakturowane','Umowa - wydane'
+];
+
+const machines = [
+  { id:1, model:'John Deere 6R 150', producent:'John Deere', vin:'1RW6150RPPK000001', dzial:'AG', status:'Umowa - Dostarczone', klient:'Rolnicze Wierzbice Sp.j.', nip:'812-234-56-78', handlowiec:'Adam Nowak', rks:'Marek Wieczorek', magazyn:'Bielsko-Biała', cena:320000, rabat:5, zakup:275000, marza:45000, marzaP:14.1, finansowanie:'Leasing', data_umowy:'2026-02-10', data_realizacji:'2026-04-15', nr_umowy:'AG/2026/041', numer_zam:'6R150-2026-041', rodzaj:'Ciągnik', demo:'Nie', cmr:'CMR-2026-041', data_przydzialu:'2026-03-20', data_dostawy:'2026-04-01', faktura:'FV/2026/1234', komentarz:'Klient prosi o doposażenie w GPS', rok_prod:2025, rejestracja:'BB-12345' },
+  { id:2, model:'John Deere 8R 310', producent:'John Deere', vin:'1RW8310RPPK000002', dzial:'AG', status:'Rezerwacja', klient:'Gospodarstwo Wiśniewscy', nip:'651-111-22-33', handlowiec:'Joanna Krawczyk', rks:'Marek Wieczorek', magazyn:'Kraków', cena:680000, rabat:3, zakup:620000, marza:38000, marzaP:5.8, finansowanie:'Kredyt bankowy', data_umowy:'', data_realizacji:'2026-06-01', nr_umowy:'', numer_zam:'8R310-2026-rez', rodzaj:'Ciągnik', demo:'Nie', cmr:'', data_przydzialu:'2026-05-10', data_dostawy:'', faktura:'', komentarz:'Rezerwacja do 2026-04-08', rok_prod:2026, rejestracja:'' },
+  { id:3, model:'John Deere X9 1100', producent:'John Deere', vin:'1RWX91100PPK000003', dzial:'AG', status:'Umowa - zamówione', klient:'Agro Południe Sp. z o.o.', nip:'722-333-44-55', handlowiec:'Piotr Zając', rks:'Anna Kowalczyk', magazyn:'Rzeszów', cena:1250000, rabat:4.5, zakup:1130000, marza:82000, marzaP:6.8, finansowanie:'Leasing', data_umowy:'2026-01-25', data_realizacji:'2026-07-01', nr_umowy:'AG/2026/018', numer_zam:'X91100-2026-018', rodzaj:'Kombajn', demo:'Nie', cmr:'', data_przydzialu:'2026-06-15', data_dostawy:'', faktura:'', komentarz:'Zamówienie potwierdzone przez JD', rok_prod:2026, rejestracja:'' },
+  { id:4, model:'Kramer KL 33.5T', producent:'Kramer', vin:'KRM335T2026004', dzial:'Kramer', status:'Umowa - Zafakturowane', klient:'Usługi Komunalne Zabierzów', nip:'941-444-55-66', handlowiec:'Beata Malinowska', rks:'Łukasz Piwowar', magazyn:'Bielsko-Biała', cena:185000, rabat:2, zakup:168000, marza:13000, marzaP:7.2, finansowanie:'Gotówka', data_umowy:'2026-01-15', data_realizacji:'2026-03-10', nr_umowy:'KR/2026/005', numer_zam:'KL335T-2026-005', rodzaj:'Ładowarka', demo:'Nie', cmr:'CMR-2026-005', data_przydzialu:'2026-02-28', data_dostawy:'2026-03-10', faktura:'FV/2026/0987', komentarz:'Faktura wystawiona, oczekiwanie na płatność', rok_prod:2025, rejestracja:'KR-AB-456' },
+  { id:5, model:'John Deere ZTrak 930M', producent:'John Deere', vin:'1MWZT930MPPK005', dzial:'TURF', status:'Umowa', klient:'Park Miejski Tarnów', nip:'873-555-66-77', handlowiec:'Maciej Dąbrowski', rks:'Sylwia Orzeł', magazyn:'Katowice', cena:45000, rabat:0, zakup:39000, marza:6000, marzaP:13.3, finansowanie:'Przetarg', data_umowy:'2026-03-05', data_realizacji:'2026-05-15', nr_umowy:'TF/2026/022', numer_zam:'', rodzaj:'Ciągnik komunalny', demo:'Tak', cmr:'', data_przydzialu:'', data_dostawy:'', faktura:'', komentarz:'Umowa niepotwiedzona – brak zadatku', rok_prod:2025, rejestracja:'' },
+  { id:6, model:'John Deere 5090R', producent:'John Deere', vin:'1RW5090RPPK000006', dzial:'AG', status:'Umowa - wydane', klient:'Rolnik Jan Błaszczyk', nip:'617-666-77-88', handlowiec:'Adam Nowak', rks:'Marek Wieczorek', magazyn:'Bielsko-Biała', cena:215000, rabat:6, zakup:188000, marza:15000, marzaP:7.4, finansowanie:'Leasing', data_umowy:'2025-11-10', data_realizacji:'2026-02-20', nr_umowy:'AG/2025/198', numer_zam:'5090R-2025-198', rodzaj:'Ciągnik', demo:'Nie', cmr:'CMR-2025-198', data_przydzialu:'2026-01-15', data_dostawy:'2026-02-18', faktura:'FV/2026/0345', komentarz:'Wydane – komplet dokumentów', rok_prod:2024, rejestracja:'BB-98765' },
+  { id:7, model:'John Deere 6155M', producent:'John Deere', vin:'1RW6155MPPK000007', dzial:'AG', status:'Dostępna', klient:'', nip:'', handlowiec:'', rks:'', magazyn:'Kraków', cena:270000, rabat:0, zakup:245000, marza:0, marzaP:0, finansowanie:'', data_umowy:'', data_realizacji:'', nr_umowy:'', numer_zam:'', rodzaj:'Ciągnik', demo:'Tak', cmr:'', data_przydzialu:'', data_dostawy:'', faktura:'', komentarz:'Maszyna demonstracyjna, MTH: 340', rok_prod:2023, rejestracja:'KR-DEMO-7' },
+  { id:8, model:'Kramer KT337', producent:'Kramer', vin:'KRMKT337-2026-008', dzial:'Kramer', status:'Umowa - zadatek', klient:'Budowa Południe s.c.', nip:'538-777-88-99', handlowiec:'Beata Malinowska', rks:'Łukasz Piwowar', magazyn:'Bielsko-Biała', cena:220000, rabat:3, zakup:200000, marza:13400, marzaP:6.3, finansowanie:'Leasing', data_umowy:'2026-03-18', data_realizacji:'2026-05-30', nr_umowy:'KR/2026/011', numer_zam:'KT337-2026-011', rodzaj:'Ładowarka', demo:'Nie', cmr:'', data_przydzialu:'2026-05-10', data_dostawy:'', faktura:'', komentarz:'Zaliczka 20 000 PLN wpłynęła 20.03', rok_prod:2026, rejestracja:'' },
+];
+
+// ─────────────────────────────────────────────
+// ROLE CONFIG
+// ─────────────────────────────────────────────
+const roleAvatars = { AG:'AL', RKS:'RK', Pozostale:'PF', Handlowiec:'HW', Serwis:'SR' };
+const roleNames   = { AG:'Agro Logistyka', RKS:'Reg. Kierownik Sprzedaży', Pozostale:'Pozostałe firmy', Handlowiec:'Handlowiec', Serwis:'Serwis' };
+
+// Pola widoczne per rola
+const roleFields = {
+  AG:         ['status','dzial','model','klient','handlowiec','magazyn','nr_umowy','data_umowy','cena','rabat','zakup','marza','rejestracja'],
+  RKS:        ['status','dzial','model','klient','handlowiec','magazyn','nr_umowy','data_umowy','cena','rabat','marza','marzaP','finansowanie','data_realizacji','komentarz'],
+  Pozostale:  ['status','dzial','model','klient','handlowiec','nr_umowy','data_realizacji','finansowanie','marza'],
+  Handlowiec: ['status','dzial','model','klient','handlowiec','magazyn','nr_umowy','data_umowy','cena','rabat','data_realizacji','finansowanie'],
+  Serwis:     ['status','model','vin','klient','magazyn','nr_umowy','data_realizacji','rejestracja','rok_prod'],
+};
+
+// Czy dana rola widzi pola finansowe szczegółowe
+const seeFinancials = { AG:true, RKS:true, Pozostale:true, Handlowiec:false, Serwis:false };
+
+const colLabels = {
+  status:'Status', dzial:'Dział', model:'Model', klient:'Klient', handlowiec:'Handlowiec',
+  magazyn:'Magazyn', nr_umowy:'Nr umowy', data_umowy:'Data umowy', cena:'Cena konfig.',
+  rabat:'Rabat %', zakup:'Zakup', marza:'Marża', marzaP:'Marża %', finansowanie:'Finansowanie',
+  data_realizacji:'Data realizacji', komentarz:'Komentarz', vin:'VIN', rejestracja:'Rejestracja', rok_prod:'Rok prod.',
+};
+
+let currentRole = 'Handlowiec';
+let selectedId = null;
+let activeTab = 'dane';
+let activeStep = null;
+
+// ─────────────────────────────────────────────
+// STATUS HELPERS
+// ─────────────────────────────────────────────
+function statusClass(s) {
+  const m = { 'Dostępna':'dostepna','Oferta':'oferta','Rezerwacja':'rezerwacja','Umowa':'umowa',
+    'Umowa - zadatek':'zadatek','Umowa - zamówione':'zamowione',
+    'Umowa - Dostarczone':'dostarczone','Umowa - Zafakturowane':'zafakturowane','Umowa - wydane':'wydane' };
+  return 'badge badge-'+(m[s]||'dostepna');
+}
+
+function statusLabel(s) { return s||'—'; }
+
+// ─────────────────────────────────────────────
+// STEPPER
+// ─────────────────────────────────────────────
+const processSteps = [
+  { label:'Dostępna',     key:'Dostępna' },
+  { label:'Oferta',       key:'Oferta' },
+  { label:'Rezerwacja',   key:'Rezerwacja' },
+  { label:'Umowa',        key:'Umowa' },
+  { label:'Zadatek',      key:'Umowa - zadatek' },
+  { label:'Zamówione',    key:'Umowa - zamówione' },
+  { label:'Dostarczone',  key:'Umowa - Dostarczone' },
+  { label:'Zafakturowane',key:'Umowa - Zafakturowane' },
+  { label:'Wydane',       key:'Umowa - wydane' },
+];
+
+function renderStepper() {
+  const el = document.getElementById('stepper');
+  const counts = {};
+  machines.forEach(m => { counts[m.status] = (counts[m.status]||0)+1; });
+  el.innerHTML = processSteps.map(s => {
+    const isActive = activeStep === s.key;
+    const cnt = counts[s.key]||0;
+    return `<div class="step${isActive?' active':''}" onclick="filterByStep('${s.key}')">
+      <div class="step-num">${processSteps.indexOf(s)+1}</div>
+      <div class="step-label">${s.label}</div>
+      ${cnt>0?`<div class="step-count">${cnt}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function filterByStep(key) {
+  const sf = document.getElementById('statusFilter');
+  if(activeStep === key) {
+    activeStep = null;
+    sf.value = '';
+  } else {
+    activeStep = key;
+    sf.value = key;
+  }
+  renderStepper();
+  renderTable();
+}
+
+// ─────────────────────────────────────────────
+// STATS BAR
+// ─────────────────────────────────────────────
+function renderStats() {
+  const bar = document.getElementById('statsBar');
+  const total = machines.length;
+  const active = machines.filter(m=>m.status!=='Dostępna'&&m.status!=='Umowa - wydane').length;
+  const dostepne = machines.filter(m=>m.status==='Dostępna').length;
+  const wydane = machines.filter(m=>m.status==='Umowa - wydane').length;
+  const marza = machines.filter(m=>m.marza>0).reduce((a,m)=>a+m.marza,0);
+  bar.innerHTML = `
+    <div class="stat"><span class="stat-num">${total}</span><span class="stat-label">maszyn</span></div>
+    <div class="stat"><span class="stat-dot" style="background:var(--green-light)"></span><span class="stat-num">${active}</span><span class="stat-label">aktywnych umów</span></div>
+    <div class="stat"><span class="stat-dot" style="background:var(--gray-300)"></span><span class="stat-num">${dostepne}</span><span class="stat-label">dostępnych</span></div>
+    <div class="stat"><span class="stat-dot" style="background:#166534"></span><span class="stat-num">${wydane}</span><span class="stat-label">wydanych</span></div>
+    ${seeFinancials[currentRole]?`<div class="stat" style="margin-left:auto"><span class="stat-label">Łączna marża:</span> <span class="stat-num" style="color:var(--green)">${marza.toLocaleString('pl-PL')} PLN</span></div>`:''}
+  `;
+}
+
+// ─────────────────────────────────────────────
+// TABLE
+// ─────────────────────────────────────────────
+function getVisibleCols() {
+  const base = ['status','model','klient','handlowiec','magazyn','nr_umowy','data_umowy','data_realizacji'];
+  return base.filter(c => roleFields[currentRole].includes(c));
+}
+
+function renderTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const sf = document.getElementById('statusFilter').value;
+  const df = document.getElementById('dzialFilter').value;
+  const cols = getVisibleCols();
+
+  // Head
+  const thead = document.getElementById('tableHead');
+  thead.innerHTML = cols.map(c=>`<th onclick="sortBy('${c}')">${colLabels[c]} <span class="sort-icon">↕</span></th>`).join('')
+    +'<th style="width:80px;"></th>';
+
+  // Filter
+  let rows = machines.filter(m => {
+    if(sf && m.status!==sf) return false;
+    if(df && m.dzial!==df) return false;
+    if(q) {
+      const hay = [m.model,m.klient,m.vin,m.handlowiec,m.nr_umowy].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const tbody = document.getElementById('tableBody');
+  if(!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="${cols.length+1}" class="no-results">Brak maszyn spełniających kryteria</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(m => {
+    const sel = m.id===selectedId;
+    const cells = cols.map(c => {
+      if(c==='status') return `<td><span class="${statusClass(m.status)}">${statusLabel(m.status)}</span></td>`;
+      if(c==='dzial') return `<td><span class="chip">${m.dzial}</span></td>`;
+      const v = m[c];
+      if(!v) return `<td style="color:var(--gray-300)">—</td>`;
+      return `<td title="${v}">${v}</td>`;
+    }).join('');
+    return `<tr class="${sel?'selected':''}" onclick="selectMachine(${m.id})">
+      ${cells}
+      <td><button class="btn-sm" onclick="event.stopPropagation();selectMachine(${m.id})">Otwórz →</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
+// PANEL
+// ─────────────────────────────────────────────
+function selectMachine(id) {
+  selectedId = id;
+  const m = machines.find(x=>x.id===id);
+  document.getElementById('detailPanel').classList.remove('closed');
+  document.getElementById('panelModel').textContent = m.model;
+  document.getElementById('panelVin').textContent = 'VIN: '+(m.vin||'—')+' · '+(m.dzial||'—');
+  renderPanel(m, activeTab);
+  renderTable();
+}
+
+function closePanel() {
+  selectedId = null;
+  document.getElementById('detailPanel').classList.add('closed');
+  renderTable();
+}
+
+function switchTab(tab, el) {
+  activeTab = tab;
+  document.querySelectorAll('.panel-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const m = machines.find(x=>x.id===selectedId);
+  if(m) renderPanel(m, tab);
+}
+
+function renderPanel(m, tab) {
+  const body = document.getElementById('panelBody');
+  const actions = document.getElementById('panelActions');
+  const role = currentRole;
+  const fin = seeFinancials[role];
+
+  if(tab==='dane') {
+    body.innerHTML = `
+      ${m.notatka_odrzucenia ? `
+      <div style="background:var(--red-pale);border:1px solid var(--red);border-radius:8px;padding:12px 14px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:15px">⚠</span>
+          <span style="font-weight:700;color:var(--red);font-size:12px;text-transform:uppercase;letter-spacing:0.4px">Oferta odrzucona przez RKS</span>
+        </div>
+        <div style="font-size:13px;color:var(--gray-900);line-height:1.5">${m.notatka_odrzucenia}</div>
+        <button class="btn-sm" onclick="clearRejectionNote(${m.id})" style="margin-top:10px;font-size:11px">Zamknij powiadomienie</button>
+      </div>` : ''}
+      <div class="panel-section">
+        <div class="panel-section-title">Podstawowe</div>
+        <div class="field-row">
+          <div class="field"><div class="field-label">Status</div><div class="field-value"><span class="${statusClass(m.status)}">${m.status}</span></div></div>
+          <div class="field"><div class="field-label">Dział</div><div class="field-value">${m.dzial}</div></div>
+          <div class="field"><div class="field-label">Model</div><div class="field-value">${m.model}</div></div>
+          <div class="field"><div class="field-label">Producent</div><div class="field-value">${m.producent}</div></div>
+          <div class="field"><div class="field-label">VIN</div><div class="field-value" style="font-size:11px;word-break:break-all">${m.vin}</div></div>
+          <div class="field"><div class="field-label">Rodzaj</div><div class="field-value">${m.rodzaj}</div></div>
+          <div class="field"><div class="field-label">Rok prod.</div><div class="field-value">${m.rok_prod||'—'}</div></div>
+          <div class="field"><div class="field-label">Demo</div><div class="field-value ${m.demo==='Tak'?'warning':''}">${m.demo}</div></div>
+          <div class="field"><div class="field-label">Magazyn</div><div class="field-value">${m.magazyn}</div></div>
+          ${m.rejestracja?`<div class="field"><div class="field-label">Rejestracja</div><div class="field-value">${m.rejestracja}</div></div>`:''}
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section-title">Umowa i klient</div>
+        <div class="field-row">
+          <div class="field"><div class="field-label">Nr umowy</div><div class="field-value highlight">${m.nr_umowy||'—'}</div></div>
+          <div class="field"><div class="field-label">Data umowy</div><div class="field-value">${m.data_umowy||'—'}</div></div>
+          <div class="field full"><div class="field-label">Klient</div><div class="field-value">${m.klient||'—'}</div></div>
+          <div class="field"><div class="field-label">NIP</div><div class="field-value">${m.nip||'—'}</div></div>
+          <div class="field"><div class="field-label">Handlowiec</div><div class="field-value">${m.handlowiec||'—'}</div></div>
+          <div class="field"><div class="field-label">RKS</div><div class="field-value">${m.rks||'—'}</div></div>
+          <div class="field"><div class="field-label">Finansowanie</div><div class="field-value">${m.finansowanie||'—'}</div></div>
+          <div class="field"><div class="field-label">Data realizacji</div><div class="field-value">${m.data_realizacji||'—'}</div></div>
+          ${m.komentarz?`<div class="field full"><div class="field-label">Komentarz</div><div class="field-value">${m.komentarz}</div></div>`:''}
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section-title">Dostawa</div>
+        <div class="field-row">
+          <div class="field"><div class="field-label">Data przydziału</div><div class="field-value">${m.data_przydzialu||'—'}</div></div>
+          <div class="field"><div class="field-label">Data dostawy (CMR)</div><div class="field-value">${m.data_dostawy||'—'}</div></div>
+          <div class="field"><div class="field-label">CMR</div><div class="field-value">${m.cmr||'—'}</div></div>
+          <div class="field"><div class="field-label">Faktura JD</div><div class="field-value">${m.faktura||'—'}</div></div>
+        </div>
+      </div>
+      ${role==='Handlowiec' ? `
+      <div class="panel-section" style="border:2px solid var(--green-pale);border-radius:8px;padding:12px;background:var(--green-pale)">
+        <div class="panel-section-title" style="color:var(--green)">Wycena handlowca</div>
+        <div class="field-row">
+          <div class="field" style="background:#fff">
+            <div class="field-label">Proponowana cena</div>
+            <div class="field-value ${m.cena_oferta?'highlight':'muted'}">${m.cena_oferta ? m.cena_oferta.toLocaleString('pl-PL')+' PLN' : 'nie ustawiono'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end;margin-top:8px">
+          <div style="flex:1">
+            <div class="field-label" style="margin-bottom:4px">Nowa proponowana cena (PLN)</div>
+            <input type="number" class="form-input" id="inputCenaOferta"
+              value="${m.cena_oferta||''}"
+              placeholder="${m.cena ? m.cena.toLocaleString('pl-PL') : '0'}"
+              min="0" step="1000"
+              oninput="calcPropDiscount(${m.cena||0},${m.zakup||0})"
+              style="background:#fff">
+          </div>
+          <button class="btn primary" onclick="savePropPrice(${m.id})" style="height:36px;white-space:nowrap">Zapisz cenę</button>
+        </div>
+      </div>` : ''}
+    `;
+  }
+  else if(tab==='proces') {
+    const stepIdx = statuses.indexOf(m.status);
+    body.innerHTML = `<div class="panel-section"><div class="panel-section-title">Postęp procesu</div><div class="timeline">`+
+      processSteps.map((s,i) => {
+        const sIdx = statuses.indexOf(s.key);
+        const isDone = sIdx < stepIdx;
+        const isCurrent = s.key===m.status;
+        return `<div class="tl-item">
+          <div class="tl-dot ${isDone?'done':''} ${isCurrent?'current':''}">
+            ${isDone?'✓':''}
+          </div>
+          <div class="tl-label ${isDone?'done':''} ${isCurrent?'current':''}">${s.label}</div>
+          <div class="tl-sub">${getStepDesc(s.key)}</div>
+        </div>`;
+      }).join('')+
+    `</div></div>
+    <div class="panel-section">
+      <div class="panel-section-title">Powiadomienia e-mail</div>
+      ${getEmailInfo(m.status)}
+    </div>`;
+  }
+  else if(tab==='finansowe') {
+    if(!fin) {
+      body.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--gray-500)">
+        <div style="font-size:32px;margin-bottom:12px">🔒</div>
+        <div style="font-weight:600">Brak dostępu</div>
+        <div style="font-size:12px;margin-top:6px">Dane finansowe niedostępne dla Twojej roli</div>
+      </div>`;
+    } else {
+      const marza_val = m.cena*(1-m.rabat/100) - m.zakup;
+      body.innerHTML = `
+        <div class="panel-section">
+          <div class="panel-section-title">Ceny i marża</div>
+          <div class="field-row">
+            <div class="field"><div class="field-label">Cena z konfiguratora</div><div class="field-value">${m.cena?m.cena.toLocaleString('pl-PL')+' PLN':'—'}</div></div>
+            <div class="field"><div class="field-label">Rabat handlowy</div><div class="field-value ${m.rabat>0?'warning':''}">${m.rabat?m.rabat+'%':'—'}</div></div>
+            <div class="field"><div class="field-label">Cena sprzedaży</div><div class="field-value highlight">${m.cena?Math.round(m.cena*(1-m.rabat/100)).toLocaleString('pl-PL')+' PLN':'—'}</div></div>
+            <div class="field"><div class="field-label">Zakup maszyny</div><div class="field-value">${m.zakup?m.zakup.toLocaleString('pl-PL')+' PLN':'—'}</div></div>
+            <div class="field"><div class="field-label">Marża (kwota)</div><div class="field-value ${m.marza>0?'highlight':''}">${m.marza?m.marza.toLocaleString('pl-PL')+' PLN':'—'}</div></div>
+            <div class="field"><div class="field-label">Marża %</div><div class="field-value ${m.marzaP>5?'highlight':m.marzaP>0?'warning':''}">${m.marzaP?m.marzaP.toFixed(1)+'%':'—'}</div></div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Finansowanie i płatności</div>
+          <div class="field-row">
+            <div class="field"><div class="field-label">Finansowanie</div><div class="field-value">${m.finansowanie||'—'}</div></div>
+            <div class="field"><div class="field-label">Faktura</div><div class="field-value">${m.faktura||'—'}</div></div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Actions
+  actions.innerHTML = getActions(m);
+}
+
+function getStepDesc(key) {
+  const d = {
+    'Dostępna': 'Maszyna w magazynie, brak rezerwacji',
+    'Oferta': 'Handlowiec wysłał ofertę – oczekuje na akceptację RKS',
+    'Rezerwacja': 'RKS zaakceptował ofertę, maszyna zarezerwowana',
+    'Umowa': 'Logistyka wprowadza umowę do systemu',
+    'Umowa - zadatek': 'Oczekiwanie na wpływ zaliczki',
+    'Umowa - zamówione': 'Zamówienie u producenta / presold',
+    'Umowa - Dostarczone': 'CMR przyjęte, maszyna w magazynie',
+    'Umowa - Zafakturowane': 'Faktura wystawiona klientowi',
+    'Umowa - wydane': 'Protokół wydania podpisany',
+  };
+  return d[key]||'';
+}
+
+function getEmailInfo(status) {
+  const mails = {
+    'Oferta': '<div class="field-row"><div class="field full"><div class="field-label">Wysyłane do</div><div class="field-value" style="font-size:11px">RKS (Regionalny Kierownik Sprzedaży) – prośba o akceptację oferty</div></div></div>',
+    'Rezerwacja': '<div class="field-row"><div class="field full"><div class="field-label">Wysyłane do</div><div class="field-value" style="font-size:11px">Handlowiec (potwierdzenie akceptacji) · agro.logistyka@wanicki.pl</div></div></div>',
+    'Umowa': '<div class="field-row"><div class="field full"><div class="field-label">Wysyłane do</div><div class="field-value" style="font-size:11px">umowaagro@wanicki.pl · Dział Finansowania · Dział Ubezpieczenia</div></div></div>',
+    'Umowa - zadatek': '<div class="field-row"><div class="field full"><div class="field-label">Wysyłane do</div><div class="field-value" style="font-size:11px">umowaagro@wanicki.pl – potwierdzenie wpływu zaliczki</div></div></div>',
+    'Umowa - Dostarczone': '<div class="field-row"><div class="field full"><div class="field-label">Wysyłane do</div><div class="field-value" style="font-size:11px">dostawyagro@wanicki.pl · Handlowiec · RKS · Księgowość</div></div></div>',
+    'Umowa - Zafakturowane': '<div class="field-row"><div class="field full"><div class="field-label">Wysyłane do</div><div class="field-value" style="font-size:11px">fakturowanie.agro@wanicki.pl · Ubezpieczenie · Finansowanie</div></div></div>',
+    'Umowa - wydane': '<div class="field-row"><div class="field full"><div class="field-label">Wysyłane do</div><div class="field-value" style="font-size:11px">wydanie.agro@wanicki.pl · Serwis</div></div></div>',
+  };
+  return mails[status]||'<div style="color:var(--gray-400);font-size:12px;padding:8px 0">Brak aktywnych powiadomień dla tego statusu</div>';
+}
+
+function getActions(m) {
+  const role = currentRole;
+  let btns = '';
+
+  // ── Handlowiec: wybiera klienta → konfiguruje → wysyła do RKS ──
+  if(role === 'Handlowiec') {
+    if(m.status === 'Dostępna') {
+      btns += `<button class="btn-sm primary" onclick="openClientModal(${m.id})">+ Przypisz klienta</button>`;
+    }
+    btns += `<button class="btn-sm" onclick="openConfigModal(${m.id})">Konfiguruj maszynę</button>`;
+    if(m.klient && m.status === 'Dostępna') {
+      const mg = calcMargin(m);
+      if(mg === null || mg < 6) {
+        btns += `<button class="btn-sm orange" onclick="sendToRKS(${m.id})">Wyślij ofertę do RKS</button>`;
+      } else {
+        btns += `<button class="btn-sm primary" onclick="changeStatus(${m.id},'Rezerwacja')">Zarezerwuj</button>`;
+      }
+    }
+    if(m.klient) {
+      btns += `<button class="btn-sm blue" onclick="generateContract(${m.id})">Podgląd oferty</button>`;
+    }
+    if(m.status === 'Oferta') {
+      btns += `<span style="font-size:11px;color:var(--orange);font-weight:600;padding:6px 8px">⏳ Oczekuje na akceptację RKS</span>`;
+    }
+    btns += `<button class="btn-sm" onclick="showToast('Kopiowanie linku...')">🔗 Udostępnij</button>`;
+    return btns;
+  }
+
+  // ── RKS: akceptuje lub odrzuca oferty handlowców ──
+  if(role === 'RKS') {
+    if(m.status === 'Oferta') {
+      btns += `<button class="btn-sm primary" onclick="rksAccept(${m.id})">✓ Zaakceptuj ofertę</button>`;
+      btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rksReject(${m.id})">✕ Odrzuć ofertę</button>`;
+      btns += `<button class="btn-sm blue" onclick="generateContract(${m.id})">Podgląd oferty</button>`;
+    }
+    btns += `<button class="btn-sm" onclick="showToast('Kopiowanie linku...')">🔗 Udostępnij</button>`;
+    return btns;
+  }
+
+  // ── AG i pozostałe: pełny przepływ statusów ──
+  if(m.status==='Dostępna' && role==='AG') {
+    btns += `<button class="btn-sm orange" onclick="changeStatus(${m.id},'Rezerwacja')">Zarezerwuj</button>`;
+  }
+  if(m.status==='Rezerwacja' && role==='AG') {
+    btns += `<button class="btn-sm primary" onclick="changeStatus(${m.id},'Umowa')">Wprowadź umowę</button>`;
+    btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="changeStatus(${m.id},'Dostępna')">Anuluj rezerwację</button>`;
+  }
+  if(m.status==='Umowa' && role==='AG') {
+    btns += `<button class="btn-sm primary" onclick="changeStatus(${m.id},'Umowa - zadatek')">Zarejestruj zadatek</button>`;
+  }
+  if(m.status==='Umowa - zadatek' && role==='AG') {
+    btns += `<button class="btn-sm blue" onclick="changeStatus(${m.id},'Umowa - zamówione')">Oznacz jako zamówione</button>`;
+  }
+  if(m.status==='Umowa - zamówione' && role==='AG') {
+    btns += `<button class="btn-sm primary" onclick="changeStatus(${m.id},'Umowa - Dostarczone')">Potwierdź dostawę (CMR)</button>`;
+  }
+  if(m.status==='Umowa - Dostarczone' && role==='AG') {
+    btns += `<button class="btn-sm primary" onclick="changeStatus(${m.id},'Umowa - Zafakturowane')">Zamów fakturę</button>`;
+  }
+  if(m.status==='Umowa - Zafakturowane' && role==='AG') {
+    btns += `<button class="btn-sm primary" onclick="changeStatus(${m.id},'Umowa - wydane')">Generuj protokół wydania</button>`;
+  }
+  btns += `<button class="btn-sm" onclick="showToast('Kopiowanie linku...')">🔗 Udostępnij</button>`;
+  return btns;
+}
+
+function changeStatus(id, newStatus) {
+  const m = machines.find(x=>x.id===id);
+  m.status = newStatus;
+  renderStepper();
+  renderStats();
+  renderTable();
+  renderPanel(m, activeTab);
+  showToast(`Status zmieniony na: ${newStatus}`, 'green');
+}
+
+// ─────────────────────────────────────────────
+// MODAL
+// ─────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+function addMachine() {
+  const model = document.getElementById('f_model').value.trim();
+  if(!model){ showToast('Wpisz model maszyny'); return; }
+  const newM = {
+    id: machines.length+1,
+    model, producent: document.getElementById('f_producent').value,
+    vin: document.getElementById('f_vin').value||('VIN-'+Date.now()),
+    dzial: document.getElementById('f_dzial').value,
+    status: 'Dostępna',
+    klient: document.getElementById('f_klient').value,
+    nip:'', handlowiec: document.getElementById('f_handlowiec').value,
+    rks:'', magazyn: document.getElementById('f_magazyn').value,
+    cena: parseInt(document.getElementById('f_cena').value)||0,
+    rabat:0, zakup:0, marza:0, marzaP:0,
+    finansowanie:'', data_umowy:'', data_realizacji:'', nr_umowy:'',
+    numer_zam:'', rodzaj: document.getElementById('f_rodzaj').value,
+    demo: document.getElementById('f_demo').value,
+    cmr:'', data_przydzialu:'', data_dostawy:'', faktura:'',
+    komentarz: document.getElementById('f_komentarz').value,
+    rok_prod: new Date().getFullYear(), rejestracja:'',
+  };
+  machines.push(newM);
+  closeModal();
+  renderStepper();
+  renderStats();
+  renderTable();
+  showToast('Maszyna dodana do systemu', 'green');
+}
+
+// ─────────────────────────────────────────────
+// ROLE CHANGE
+// ─────────────────────────────────────────────
+function changeRole(role, silent) {
+  currentRole = role;
+  document.getElementById('avatarEl').textContent = roleAvatars[role]||'??';
+  // Handlowiec nie dodaje maszyn – ukryj przycisk
+  const btnNM = document.getElementById('btnNowaMaszyna');
+  if(btnNM) btnNM.style.display = role === 'Handlowiec' ? 'none' : '';
+  // Zakładka Użytkownicy tylko dla administracji
+  const adminRoles = ['AG', 'Pozostale'];
+  document.getElementById('navTabUzytkownicy').style.display = adminRoles.includes(role) ? '' : 'none';
+  // Zakładka Sprzedaż tylko dla Handlowca
+  document.getElementById('navTabSprzedaz').style.display = role === 'Handlowiec' ? '' : 'none';
+  // Jeśli zmiana roli wyłącza aktualny widok – wróć do Maszyn
+  if(role !== 'Handlowiec') {
+    const sprzEl = document.querySelector('.main-nav-tab[onclick*="sprzedaz"]');
+    if(sprzEl && sprzEl.classList.contains('active')) {
+      document.querySelectorAll('.main-nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelector('.main-nav-tab[onclick*="maszyny"]').classList.add('active');
+      document.getElementById('view-maszyny').classList.add('active');
+    }
+  }
+  renderStats();
+  renderTable();
+  if(selectedId) {
+    const m = machines.find(x=>x.id===selectedId);
+    renderPanel(m, activeTab);
+  }
+  if(!silent) showToast('Widok zmieniony: '+roleNames[role]);
+}
+
+// ─────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show'+(type?' '+type:'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 3000);
+}
+
+// ─────────────────────────────────────────────
+// SORT (placeholder)
+// ─────────────────────────────────────────────
+function sortBy(col) {
+  machines.sort((a,b)=>{
+    const av=a[col]||'', bv=b[col]||'';
+    return av<bv?-1:av>bv?1:0;
+  });
+  renderTable();
+}
+
+// ─────────────────────────────────────────────
+// KONFIGURACJA MASZYNY
+// ─────────────────────────────────────────────
+const configOptions = {
+  'Ciągnik': [
+    { id:'gps',        label:'GPS AutoSteering John Deere StarFire 7500', cena:18500 },
+    { id:'tzprzed',    label:'Przedni TUZ',                                cena:4200  },
+    { id:'ladowacz',   label:'Ładowacz czołowy 623R',                      cena:22000 },
+    { id:'podwojne',   label:'Podwójne koła tylne',                        cena:8800  },
+    { id:'activeseat', label:'ActiveSeat – zawieszenie siedzenia',          cena:3100  },
+    { id:'isobus',     label:'Terminal ISOBUS GreenStar 4630',              cena:7500  },
+    { id:'klima',      label:'Klimatyzacja postojowa',                      cena:2800  },
+    { id:'fpom',       label:'Przedni WOM',                                 cena:3600  },
+  ],
+  'Kombajn': [
+    { id:'gps',        label:'GPS AutoSteering John Deere',                 cena:21000 },
+    { id:'sieczkarnia',label:'Sieczkarnia z rozrzutnikiem',                 cena:28000 },
+    { id:'wozek',      label:'Wózek transportowy głowicy',                  cena:12000 },
+    { id:'activeyield',label:'ActiveYield – kontrola wydajności',           cena:15000 },
+    { id:'kamera',     label:'Kamera tylna HD',                             cena:1800  },
+  ],
+  'Ładowarka': [
+    { id:'widly',      label:'Widły paletowe',                              cena:3200  },
+    { id:'lyzka',      label:'Łyżka szeroka 2.0 m',                        cena:4500  },
+    { id:'chwytak',    label:'Chwytak do bel okrągłych',                   cena:5800  },
+    { id:'kamera',     label:'Kamera cofania',                              cena:1200  },
+    { id:'ogrzewanie', label:'Ogrzewanie kabiny',                           cena:2100  },
+  ],
+};
+function getConfigOpts(rodzaj) {
+  return configOptions[rodzaj] || [
+    { id:'gps',    label:'GPS / Nawigacja',          cena:8500 },
+    { id:'led',    label:'Oświetlenie robocze LED',  cena:1800 },
+    { id:'kamera', label:'Kamera cofania',           cena:1200 },
+  ];
+}
+
+let configMachineId = null;
+let selectedConfigOpts = [];
+
+function openConfigModal(id) {
+  configMachineId = id;
+  const m = machines.find(x => x.id === id);
+  selectedConfigOpts = [...(m.konfiguracja || [])];
+  document.getElementById('configMachineInfo').textContent = m.model + '  ·  ' + m.vin + '  ·  ' + m.rodzaj;
+  renderConfigOptions();
+  document.getElementById('modalConfig').classList.add('open');
+}
+function closeConfigModal() {
+  document.getElementById('modalConfig').classList.remove('open');
+}
+function renderConfigOptions() {
+  const m = machines.find(x => x.id === configMachineId);
+  const opts = getConfigOpts(m.rodzaj);
+  document.getElementById('configOptionsList').innerHTML = opts.map(o => {
+    const on = selectedConfigOpts.includes(o.id);
+    return `<div class="config-option${on?' selected':''}" onclick="toggleConfigOpt('${o.id}')">
+      <input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation();toggleConfigOpt('${o.id}')">
+      <span class="config-option-label">${o.label}</span>
+      <span class="config-option-price">+${o.cena.toLocaleString('pl-PL')} PLN</span>
+    </div>`;
+  }).join('');
+  const total = getConfigOpts(m.rodzaj)
+    .filter(o => selectedConfigOpts.includes(o.id))
+    .reduce((s, o) => s + o.cena, 0);
+  document.getElementById('configTotalPrice').textContent = total.toLocaleString('pl-PL') + ' PLN';
+}
+function toggleConfigOpt(id) {
+  const idx = selectedConfigOpts.indexOf(id);
+  if(idx === -1) selectedConfigOpts.push(id);
+  else selectedConfigOpts.splice(idx, 1);
+  renderConfigOptions();
+}
+function saveConfig() {
+  const m = machines.find(x => x.id === configMachineId);
+  m.konfiguracja = [...selectedConfigOpts];
+  closeConfigModal();
+  renderPanel(m, activeTab);
+  showToast('Konfiguracja zapisana', 'green');
+}
+
+// ─────────────────────────────────────────────
+// PRZYPISZ KLIENTA
+// ─────────────────────────────────────────────
+let clientTargetId = null;
+let selectedClientModalId = null;
+
+function openClientModal(id) {
+  clientTargetId = id;
+  selectedClientModalId = null;
+  document.getElementById('clientModalSearch').value = '';
+  switchClientTab('existing');
+  renderClientModalList();
+  document.getElementById('modalClient').classList.add('open');
+}
+function closeClientModal() {
+  document.getElementById('modalClient').classList.remove('open');
+}
+function switchClientTab(tab) {
+  const isNew = tab === 'new';
+  document.getElementById('ctabExisting').classList.toggle('active', !isNew);
+  document.getElementById('ctabNew').classList.toggle('active', isNew);
+  document.getElementById('clientTabExisting').style.display = isNew ? 'none' : '';
+  document.getElementById('clientTabNew').style.display = isNew ? '' : 'none';
+  document.getElementById('btnAssignClient').textContent = isNew ? 'Dodaj i przypisz' : 'Przypisz klienta';
+}
+function renderClientModalList() {
+  const q = document.getElementById('clientModalSearch').value.toLowerCase();
+  const filtered = clients.filter(c =>
+    !q || [c.nazwa, c.nip, c.miejscowosc, c.handlowiec].join(' ').toLowerCase().includes(q)
+  );
+  const list = document.getElementById('clientModalList');
+  if(!filtered.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--gray-500)">Brak wyników</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(c => `
+    <div class="client-list-item${selectedClientModalId===c.id?' selected':''}" onclick="selectClientModalItem(${c.id})">
+      <div class="client-list-item-name">${c.nazwa}</div>
+      <div class="client-list-item-sub">${c.nip} · ${c.miejscowosc} · ${c.handlowiec}</div>
+    </div>`).join('');
+}
+function selectClientModalItem(id) {
+  selectedClientModalId = id;
+  renderClientModalList();
+}
+function assignClient() {
+  const m = machines.find(x => x.id === clientTargetId);
+  const isNew = document.getElementById('ctabNew').classList.contains('active');
+  if(!isNew) {
+    if(!selectedClientModalId) { showToast('Wybierz klienta z listy'); return; }
+    const c = clients.find(x => x.id === selectedClientModalId);
+    m.klient = c.nazwa;
+    m.nip    = c.nip;
+  } else {
+    const nazwa = document.getElementById('nc_nazwa').value.trim();
+    if(!nazwa) { showToast('Wpisz nazwę klienta'); return; }
+    const newC = {
+      id: clients.length + 1,
+      nazwa,
+      nip:             document.getElementById('nc_nip').value,
+      miejscowosc:     document.getElementById('nc_miasto').value,
+      handlowiec:      '',
+      dzial:           document.getElementById('nc_dzial').value,
+      liczba_umow:     0,
+      ostatnia_aktywnosc: new Date().toISOString().split('T')[0],
+    };
+    clients.push(newC);
+    m.klient = newC.nazwa;
+    m.nip    = newC.nip;
+    renderClients();
+    document.getElementById('navCountKlienci').textContent = clients.length;
+  }
+  closeClientModal();
+  renderTable();
+  renderPanel(m, 'dane');
+  showToast('Klient przypisany: ' + m.klient + ' · Teraz skonfiguruj maszynę i wyślij ofertę do RKS', 'green');
+}
+
+// ─────────────────────────────────────────────
+// GENERUJ UMOWĘ
+// ─────────────────────────────────────────────
+function generateContract(id) {
+  const m = machines.find(x => x.id === id);
+  if(!m.klient) { showToast('Najpierw przypisz klienta do maszyny'); return; }
+
+  const opts        = getConfigOpts(m.rodzaj);
+  const selected    = opts.filter(o => (m.konfiguracja||[]).includes(o.id));
+  const optsTotal   = selected.reduce((s, o) => s + o.cena, 0);
+  const basePrice   = m.cena || 0;
+  const rabat       = m.rabat || 0;
+  const salePrice   = m.cena_oferta || Math.round(basePrice * (1 - rabat / 100));
+  const totalPrice  = salePrice + optsTotal;
+  const nrUmowy     = m.nr_umowy || ('AGR/' + new Date().getFullYear() + '/' + String(id).padStart(3,'0'));
+  const today       = new Date().toLocaleDateString('pl-PL');
+
+  document.getElementById('contractTitle').textContent = 'Umowa ' + nrUmowy;
+  document.getElementById('contractDoc').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:18px;margin-bottom:24px">
+      <div>
+        <div style="font-size:22pt;font-weight:bold;font-family:Arial,sans-serif;letter-spacing:-0.5px">Wanicki <span style="font-weight:300">AGRO</span></div>
+        <div style="font-size:9.5pt;color:#555;margin-top:4px">Wanicki Sp. z o. o. · ul. Przykładowa 1 · 43-300 Bielsko-Biała<br>NIP: 547-000-00-00 · tel. +48 33 000 00 00 · wanicki.pl</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13pt;font-weight:bold">${nrUmowy}</div>
+        <div style="font-size:10pt;color:#555">Data: ${today}</div>
+      </div>
+    </div>
+
+    <h2 style="text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:1px;margin-bottom:24px">Umowa Sprzedaży Maszyny</h2>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">
+      <div>
+        <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Sprzedawca</div>
+        <table style="font-size:11pt;width:100%">
+          <tr><td style="color:#555;padding:2px 8px 2px 0;width:90px">Firma:</td><td><b>Wanicki Sp. z o. o.</b></td></tr>
+          <tr><td style="color:#555;padding:2px 8px 2px 0">NIP:</td><td>547-000-00-00</td></tr>
+          <tr><td style="color:#555;padding:2px 8px 2px 0">Adres:</td><td>ul. Przykładowa 1, 43-300 Bielsko-Biała</td></tr>
+          <tr><td style="color:#555;padding:2px 8px 2px 0">Handlowiec:</td><td>${m.handlowiec||'—'}</td></tr>
+        </table>
+      </div>
+      <div>
+        <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Kupujący</div>
+        <table style="font-size:11pt;width:100%">
+          <tr><td style="color:#555;padding:2px 8px 2px 0;width:90px">Firma/Osoba:</td><td><b>${m.klient||'—'}</b></td></tr>
+          <tr><td style="color:#555;padding:2px 8px 2px 0">NIP:</td><td>${m.nip||'—'}</td></tr>
+          <tr><td style="color:#555;padding:2px 8px 2px 0">Adres:</td><td>—</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-bottom:18px">
+      <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Przedmiot umowy – maszyna</div>
+      <table style="font-size:11pt;width:100%">
+        <tr><td style="color:#555;padding:2px 8px 2px 0;width:160px">Model:</td><td><b>${m.model}</b></td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Producent:</td><td>${m.producent}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Rodzaj:</td><td>${m.rodzaj}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Rok produkcji:</td><td>${m.rok_prod||'—'}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Nr seryjny (VIN):</td><td style="font-family:monospace">${m.vin}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Magazyn:</td><td>${m.magazyn}</td></tr>
+        ${m.demo==='Tak'?'<tr><td style="color:#555;padding:2px 8px 2px 0">Uwaga:</td><td><b>Maszyna demonstracyjna</b></td></tr>':''}
+      </table>
+    </div>
+
+    ${selected.length > 0 ? `
+    <div style="margin-bottom:18px">
+      <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Konfiguracja / wyposażenie dodatkowe</div>
+      ${selected.map(o => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dotted #ddd;font-size:11pt"><span>${o.label}</span><span>${o.cena.toLocaleString('pl-PL')} PLN</span></div>`).join('')}
+    </div>` : ''}
+
+    <div style="margin-bottom:24px">
+      <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Warunki finansowe</div>
+      <table style="font-size:11pt;width:100%">
+        ${optsTotal?`<tr><td style="color:#555;padding:2px 8px 2px 0;width:220px">Wyposażenie dodatkowe:</td><td>${optsTotal.toLocaleString('pl-PL')} PLN</td></tr>`:''}
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Forma finansowania:</td><td>${m.finansowanie||'do ustalenia'}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Termin realizacji:</td><td>${m.data_realizacji||'do ustalenia'}</td></tr>
+      </table>
+      <div style="display:flex;justify-content:space-between;font-size:13pt;font-weight:bold;margin-top:10px;padding-top:8px;border-top:2px solid #000">
+        <span>ŁĄCZNA CENA SPRZEDAŻY (brutto):</span>
+        <span>${totalPrice.toLocaleString('pl-PL')} PLN</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:28px">
+      <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Postanowienia dodatkowe</div>
+      <p style="font-size:11pt;min-height:48px">${m.komentarz||''}</p>
+      <p style="font-size:9pt;color:#666;margin-top:10px">Strony zobowiązują się do przestrzegania warunków niniejszej umowy. Wszelkie zmiany wymagają formy pisemnej pod rygorem nieważności. W sprawach nieuregulowanych zastosowanie mają przepisy Kodeksu Cywilnego.</p>
+    </div>
+
+    <div style="display:flex;gap:60px;margin-top:52px">
+      <div style="flex:1"><div style="border-bottom:1px solid #000;margin-bottom:6px;margin-top:44px"></div><div style="font-size:9pt;color:#555">Sprzedawca (podpis i pieczęć)<br><b>Wanicki Sp. z o. o.</b></div></div>
+      <div style="flex:1"><div style="border-bottom:1px solid #000;margin-bottom:6px;margin-top:44px"></div><div style="font-size:9pt;color:#555">Kupujący (podpis)<br><b>${m.klient||'Klient'}</b></div></div>
+    </div>
+  `;
+  document.getElementById('contractOverlay').classList.add('open');
+}
+// ─────────────────────────────────────────────
+// WYCENA HANDLOWCA
+// ─────────────────────────────────────────────
+function calcMargin(m) {
+  const salePrice = m.cena_oferta || (m.cena ? Math.round(m.cena * (1 - (m.rabat||0) / 100)) : 0);
+  if(!salePrice || !m.zakup) return null;
+  return ((salePrice - m.zakup) / salePrice) * 100;
+}
+
+function calcPropDiscount(catalogPrice, zakup) {
+  // logika marży potrzebna do przycisków – widok ukryty
+}
+
+function savePropPrice(id) {
+  const m   = machines.find(x => x.id === id);
+  const val = parseFloat(document.getElementById('inputCenaOferta').value);
+  if(!val || val <= 0) { showToast('Wpisz prawidłową cenę'); return; }
+  m.cena_oferta = Math.round(val);
+  if(m.cena) m.rabat = parseFloat(((1 - val / m.cena) * 100).toFixed(1));
+  const margin = calcMargin(m);
+  renderPanel(m, activeTab);
+  showToast('Cena zapisana: ' + m.cena_oferta.toLocaleString('pl-PL') + ' PLN', 'green');
+}
+
+function sendToRKS(id) {
+  const m = machines.find(x => x.id === id);
+  m.status = 'Oferta';
+  renderStepper(); renderStats(); renderTable(); renderPanel(m, activeTab);
+  showToast('Oferta wysłana do RKS – oczekuje na akceptację', 'green');
+}
+function rksAccept(id) {
+  const m = machines.find(x => x.id === id);
+  m.status = 'Rezerwacja';
+  renderStepper(); renderStats(); renderTable(); renderPanel(m, activeTab);
+  showToast('Oferta zaakceptowana – maszyna zarezerwowana', 'green');
+}
+let rksRejectTargetId = null;
+
+function rksReject(id) {
+  rksRejectTargetId = id;
+  document.getElementById('rksRejectNote').value = '';
+  document.getElementById('modalRksReject').classList.add('open');
+}
+function closeRksRejectModal() {
+  document.getElementById('modalRksReject').classList.remove('open');
+}
+function confirmRksReject() {
+  const note = document.getElementById('rksRejectNote').value.trim();
+  if(!note) { showToast('Wpisz notatkę dla handlowca'); return; }
+  const m = machines.find(x => x.id === rksRejectTargetId);
+  m.status = 'Dostępna';
+  m.notatka_odrzucenia = note;
+  closeRksRejectModal();
+  renderStepper(); renderStats(); renderTable(); renderPanel(m, activeTab);
+  showToast('Oferta odrzucona – handlowiec otrzyma powiadomienie');
+}
+function clearRejectionNote(id) {
+  const m = machines.find(x => x.id === id);
+  m.notatka_odrzucenia = '';
+  renderPanel(m, activeTab);
+}
+
+function closeContract() {
+  document.getElementById('contractOverlay').classList.remove('open');
+}
+function printContract() {
+  const doc = document.getElementById('contractDoc').innerHTML;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><title>Umowa</title>
+    <style>@page{margin:20mm}body{font-family:'Times New Roman',serif;font-size:12pt;color:#000;line-height:1.65}*{box-sizing:border-box}</style>
+    </head><body>${doc}<script>window.onload=function(){window.print()}<\/script></body></html>`);
+  w.document.close();
+}
+
+// ─────────────────────────────────────────────
+// UŻYTKOWNICY
+// ─────────────────────────────────────────────
+const roleColors = {
+  'Handlowiec': 'badge-umowa',
+  'RKS':        'badge-rks',
+  'AG':         'badge-dostarczone',
+  'Serwis':     'badge-dostepna',
+};
+
+function renderUsers() {
+  const q  = document.getElementById('userSearch').value.toLowerCase();
+  const rf = document.getElementById('userRoleFilter').value;
+  const sf = document.getElementById('userStatusFilter').value;
+
+  let rows = users.filter(u => {
+    if(rf && u.rola   !== rf) return false;
+    if(sf && u.status !== sf) return false;
+    if(q) {
+      const hay = [u.imie, u.nazwisko, u.email, u.rola, u.dzial].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const tbody = document.getElementById('userBody');
+  if(!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="no-results">Brak użytkowników spełniających kryteria</td></tr>`;
+    return;
+  }
+
+  const aktywni    = rows.filter(u => u.status === 'Aktywny').length;
+  const nieaktywni = rows.filter(u => u.status === 'Nieaktywny').length;
+
+  tbody.innerHTML = rows.map(u => {
+    const aktywny = u.status === 'Aktywny';
+    const ini = (u.imie[0] + u.nazwisko[0]).toUpperCase();
+    return `<tr onclick="showToast('${u.imie} ${u.nazwisko} – ${u.rola}')">
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:30px;height:30px;border-radius:50%;background:var(--green-pale);color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">${ini}</div>
+          <div>
+            <div style="font-weight:600">${u.imie} ${u.nazwisko}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="badge ${roleColors[u.rola]||'badge-dostepna'}">${u.rola}</span></td>
+      <td><span class="chip">${u.dzial}</span></td>
+      <td style="color:var(--blue);font-size:12px">${u.email}</td>
+      <td style="color:var(--gray-500)">${u.telefon}</td>
+      <td style="color:var(--gray-500)">${u.ostatnie_log}</td>
+      <td>
+        <span class="badge ${aktywny ? 'badge-zafakturowane' : 'badge-dostepna'}">
+          ${aktywny ? 'Aktywny' : 'Nieaktywny'}
+        </span>
+      </td>
+      <td>
+        <button class="btn-sm" onclick="event.stopPropagation();showToast('Edycja: ${u.imie} ${u.nazwisko}')">Edytuj</button>
+        <button class="btn-sm" style="margin-left:4px;${aktywny?'color:var(--red);border-color:var(--red)':'color:var(--green);border-color:var(--green)'}"
+          onclick="event.stopPropagation();toggleUserStatus(${u.id})">
+          ${aktywny ? 'Dezaktywuj' : 'Aktywuj'}
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleUserStatus(id) {
+  const u = users.find(x => x.id === id);
+  u.status = u.status === 'Aktywny' ? 'Nieaktywny' : 'Aktywny';
+  renderUsers();
+  showToast(`${u.imie} ${u.nazwisko}: ${u.status}`, 'green');
+}
+
+// ─────────────────────────────────────────────
+// WIZARD SPRZEDAŻ
+// ─────────────────────────────────────────────
+let wiz = { step:1, machineId:null, config:[], clientId:null, isNewClient:false, newClientData:{}, cenaOferta:null };
+
+const wizSteps = [
+  { n:1, label:'Maszyna' },
+  { n:2, label:'Klient' },
+  { n:3, label:'Wycena' },
+  { n:4, label:'Finalizacja' },
+];
+
+function renderWizBar() {
+  document.getElementById('wizBar').innerHTML = wizSteps.map((s,i) => {
+    const cls = s.n < wiz.step ? 'done' : s.n === wiz.step ? 'active' : '';
+    const num = s.n < wiz.step ? '✓' : s.n;
+    const arrow = i < wizSteps.length-1 ? `<div class="wiz-arrow">›</div>` : '';
+    return `<div class="wiz-step ${cls}" onclick="${cls==='done'?`wizGoto(${s.n})`:''}">
+      <div class="wiz-num">${num}</div>
+      <span>${s.label}</span>
+    </div>${arrow}`;
+  }).join('');
+}
+
+function wizGoto(n) { if(n < wiz.step){ wiz.step = n; renderWiz(); } }
+
+function renderWiz() {
+  renderWizBar();
+  const body   = document.getElementById('wizBody');
+  const footer = document.getElementById('wizFooter');
+
+  // ── Krok 1: Wybór maszyny ──
+  if(wiz.step === 1) {
+    const avail = machines.filter(m => m.status === 'Dostępna');
+    body.innerHTML = `
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:4px">Wybierz maszynę</h2>
+      <p style="font-size:12px;color:var(--gray-500);margin-bottom:16px">Dostępne maszyny w magazynie – ${avail.length} szt.</p>
+      ${avail.length === 0 ? `<div class="no-results" style="padding:40px">Brak dostępnych maszyn</div>` :
+        avail.map(m => {
+          const sel = wiz.machineId === m.id;
+          const opts = getConfigOpts(m.rodzaj);
+          return `<div class="mcard ${sel?'selected':''}" onclick="wizSelectMachine(${m.id})">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+              <div>
+                <div class="mcard-title">${m.model}</div>
+                <div class="mcard-meta">
+                  <span class="badge badge-dostepna">${m.rodzaj}</span>
+                  <span class="chip">${m.dzial}</span>
+                  <span style="font-size:11px;color:var(--gray-500)">Rok: ${m.rok_prod||'—'}</span>
+                  <span style="font-size:11px;color:var(--gray-500)">Magazyn: ${m.magazyn}</span>
+                  ${m.demo==='Tak'?`<span class="badge badge-rezerwacja">Demo</span>`:''}
+                </div>
+                <div style="font-size:10px;color:var(--gray-300);margin-top:4px;font-family:monospace">${m.vin}</div>
+              </div>
+              ${sel ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+            </div>
+            ${sel ? `
+            <div class="mcard-config">
+              <div class="mcard-config-title">Wyposażenie dodatkowe</div>
+              ${opts.map(o => {
+                const on = wiz.config.includes(o.id);
+                return `<div class="config-option${on?' selected':''}" style="padding:8px 10px" onclick="event.stopPropagation();wizToggleConfig('${o.id}')">
+                  <input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation();wizToggleConfig('${o.id}')">
+                  <span class="config-option-label">${o.label}</span>
+                  <span class="config-option-price">+${o.cena.toLocaleString('pl-PL')} PLN</span>
+                </div>`;
+              }).join('')}
+            </div>` : ''}
+          </div>`;
+        }).join('')
+      }`;
+    footer.innerHTML = `
+      <button class="btn" onclick="resetWiz()">Zacznij od nowa</button>
+      <div class="wiz-footer-spacer"></div>
+      <button class="btn primary" ${wiz.machineId?'':'disabled'} onclick="wizNext()">Dalej: Wybierz klienta →</button>`;
+  }
+
+  // ── Krok 2: Wybór klienta ──
+  else if(wiz.step === 2) {
+    const q = (document.getElementById('wizClientSearch')||{value:''}).value||'';
+    const filtered = clients.filter(c => !q || [c.nazwa,c.nip,c.miejscowosc].join(' ').toLowerCase().includes(q.toLowerCase()));
+    body.innerHTML = `
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:4px">Wybierz klienta</h2>
+      <p style="font-size:12px;color:var(--gray-500);margin-bottom:16px">Wybierz z listy lub dodaj nowego klienta</p>
+      <div class="search-box" style="margin-bottom:12px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="wizClientSearch" type="text" placeholder="Szukaj klienta..." value="${q}" oninput="renderWiz()">
+      </div>
+      <div style="margin-bottom:16px">
+        ${filtered.map(c => `
+          <div class="clist-item ${wiz.clientId===c.id&&!wiz.isNewClient?'selected':''}" onclick="wizSelectClient(${c.id})">
+            <div style="font-weight:600;font-size:13px">${c.nazwa}</div>
+            <div style="font-size:11px;color:var(--gray-500)">${c.nip} · ${c.miejscowosc}</div>
+          </div>`).join('')}
+      </div>
+      <details style="border:1px solid var(--gray-200);border-radius:8px;padding:14px" ${wiz.isNewClient?'open':''}>
+        <summary style="font-weight:600;font-size:13px;cursor:pointer;color:var(--green)" onclick="wiz.isNewClient=!wiz.isNewClient">+ Nowy klient</summary>
+        <div class="form-grid" style="margin-top:14px">
+          <div class="form-group full"><label class="form-label">Nazwa klienta / firmy *</label>
+            <input class="form-input" id="wiz_nazwa" value="${wiz.newClientData.nazwa||''}" oninput="wiz.newClientData.nazwa=this.value" placeholder="np. Rolnicze Południe Sp. z o.o."></div>
+          <div class="form-group"><label class="form-label">NIP</label>
+            <input class="form-input" id="wiz_nip" value="${wiz.newClientData.nip||''}" oninput="wiz.newClientData.nip=this.value" placeholder="000-000-00-00"></div>
+          <div class="form-group"><label class="form-label">Miejscowość</label>
+            <input class="form-input" id="wiz_miasto" value="${wiz.newClientData.miasto||''}" oninput="wiz.newClientData.miasto=this.value" placeholder="np. Kraków"></div>
+          <div class="form-group"><label class="form-label">Telefon</label>
+            <input class="form-input" id="wiz_tel" value="${wiz.newClientData.tel||''}" oninput="wiz.newClientData.tel=this.value" placeholder="600-000-000"></div>
+          <div class="form-group"><label class="form-label">E-mail</label>
+            <input class="form-input" id="wiz_email" value="${wiz.newClientData.email||''}" oninput="wiz.newClientData.email=this.value" placeholder="kontakt@firma.pl"></div>
+          <div class="form-group"><label class="form-label">Adres</label>
+            <input class="form-input" id="wiz_adres" value="${wiz.newClientData.adres||''}" oninput="wiz.newClientData.adres=this.value" placeholder="ul. Przykładowa 1, 00-000 Miasto"></div>
+        </div>
+      </details>`;
+    footer.innerHTML = `
+      <button class="btn" onclick="wizBack()">← Wstecz</button>
+      <div class="wiz-footer-spacer"></div>
+      <button class="btn primary" onclick="wizStep2Next()">Dalej: Wycena →</button>`;
+  }
+
+  // ── Krok 3: Wycena ──
+  else if(wiz.step === 3) {
+    const m    = machines.find(x => x.id === wiz.machineId);
+    const opts = getConfigOpts(m.rodzaj);
+    const selOpts = opts.filter(o => wiz.config.includes(o.id));
+    const optsTotal = selOpts.reduce((s,o)=>s+o.cena,0);
+    const klient = wiz.isNewClient ? (wiz.newClientData.nazwa||'Nowy klient') : (clients.find(c=>c.id===wiz.clientId)||{}).nazwa||'—';
+    body.innerHTML = `
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:16px">Wycena oferty</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div class="sum-box">
+          <div class="sum-box-title">Maszyna</div>
+          <div class="sum-box-main">${m.model}</div>
+          <div class="sum-box-sub">${m.rodzaj} · ${m.rok_prod||'—'} · ${m.magazyn}</div>
+          ${selOpts.length?`<div style="margin-top:8px;font-size:11px;color:var(--green);font-weight:600">+${selOpts.length} opcji dodatkowych</div>`:''}
+        </div>
+        <div class="sum-box">
+          <div class="sum-box-title">Klient</div>
+          <div class="sum-box-main">${klient}</div>
+          ${wiz.isNewClient?`<div class="sum-box-sub" style="color:var(--orange)">Nowy klient – zostanie dodany</div>`:''}
+        </div>
+      </div>
+      ${selOpts.length?`<div class="sum-box" style="margin-bottom:20px">
+        <div class="sum-box-title">Wybrane wyposażenie dodatkowe</div>
+        ${selOpts.map(o=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--gray-200)"><span>${o.label}</span><span style="font-weight:600">+${o.cena.toLocaleString('pl-PL')} PLN</span></div>`).join('')}
+        <div style="display:flex;justify-content:space-between;padding:6px 0 0;font-size:13px;font-weight:700"><span>Razem wyposażenie:</span><span>${optsTotal.toLocaleString('pl-PL')} PLN</span></div>
+      </div>`:''}
+      <div style="background:var(--green-pale);border:2px solid var(--green);border-radius:8px;padding:16px">
+        <div class="sum-box-title" style="color:var(--green)">Proponowana cena sprzedaży</div>
+        <div style="display:flex;gap:12px;align-items:flex-end;margin-top:8px">
+          <div style="flex:1">
+            <input type="number" class="form-input" id="wizCena" value="${wiz.cenaOferta||''}"
+              placeholder="Wpisz cenę maszyny (PLN)" min="0" step="1000"
+              style="font-size:15px;font-weight:600;background:#fff"
+              oninput="wiz.cenaOferta=parseFloat(this.value)||null">
+          </div>
+          <span style="font-size:14px;font-weight:700;color:var(--green);padding-bottom:8px">PLN</span>
+        </div>
+        ${optsTotal?`<div style="margin-top:10px;font-size:12px;color:var(--gray-700)">Łączna wartość oferty: <strong>${wiz.cenaOferta?(wiz.cenaOferta+optsTotal).toLocaleString('pl-PL')+' PLN':'—'}</strong> (maszyna + wyposażenie)</div>`:''}
+      </div>`;
+    footer.innerHTML = `
+      <button class="btn" onclick="wizBack()">← Wstecz</button>
+      <div class="wiz-footer-spacer"></div>
+      <button class="btn primary" onclick="wizStep3Next()">Generuj ofertę →</button>`;
+  }
+
+  // ── Krok 4: Finalizacja ──
+  else if(wiz.step === 4) {
+    const m      = machines.find(x => x.id === wiz.machineId);
+    const klient = wiz.isNewClient ? wiz.newClientData.nazwa : (clients.find(c=>c.id===wiz.clientId)||{}).nazwa||'—';
+    const needsRKS = calcMargin(m) === null || calcMargin(m) < 6;
+    const isOferta = m.status === 'Oferta';
+    const isRezerw = m.status === 'Rezerwacja' || m.status === 'Umowa';
+    body.innerHTML = `
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:16px">Finalizacja</h2>
+      <div class="sum-box" style="margin-bottom:12px">
+        <div class="sum-box-title">Podsumowanie oferty</div>
+        <div class="sum-box-main">${m.model}</div>
+        <div class="sum-box-sub">${klient}</div>
+        ${wiz.cenaOferta?`<div style="margin-top:6px;font-size:14px;font-weight:700;color:var(--green)">${wiz.cenaOferta.toLocaleString('pl-PL')} PLN</div>`:''}
+      </div>
+      ${isOferta ? `
+      <div style="background:var(--orange-pale);border:1px solid var(--orange);border-radius:8px;padding:14px;margin-bottom:12px">
+        <div style="font-weight:700;color:var(--orange);margin-bottom:4px">⏳ Oczekuje na akceptację RKS</div>
+        <div style="font-size:12px;color:var(--gray-700)">Oferta została wysłana do Regionalnego Kierownika Sprzedaży. Po akceptacji będziesz mógł wydrukować umowę.</div>
+      </div>` : ''}
+      ${isRezerw ? `
+      <div style="background:var(--green-pale);border:1px solid var(--green);border-radius:8px;padding:14px;margin-bottom:16px">
+        <div style="font-weight:700;color:var(--green);margin-bottom:4px">✓ Oferta zatwierdzona – możesz wydrukować umowę</div>
+        <div style="font-size:12px;color:var(--gray-700)">Wydrukuj umowę, podpisz z klientem, zeskanuj i wyślij na adres logistyki.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn primary" style="justify-content:center;padding:12px" onclick="generateContract(${m.id})">
+          🖨 Drukuj umowę do podpisania
+        </button>
+        <a href="mailto:umowy.agro@wanicki.pl?subject=Umowa ${m.nr_umowy||m.model} – ${klient}&body=W załączeniu umowa sprzedaży maszyny ${m.model} dla klienta ${klient}."
+          class="btn" style="justify-content:center;padding:12px;text-decoration:none">
+          ✉ Wyślij skan na umowy.agro@wanicki.pl
+        </a>
+      </div>` : ''}`;
+    footer.innerHTML = `
+      <button class="btn" onclick="wizBack()">← Wstecz</button>
+      <div class="wiz-footer-spacer"></div>
+      <button class="btn primary" onclick="resetWiz()">+ Nowa sprzedaż</button>`;
+  }
+}
+
+function wizSelectMachine(id) {
+  if(wiz.machineId === id) return;
+  wiz.machineId = id;
+  wiz.config = [];
+  renderWiz();
+}
+function wizToggleConfig(optId) {
+  const idx = wiz.config.indexOf(optId);
+  if(idx === -1) wiz.config.push(optId); else wiz.config.splice(idx,1);
+  renderWiz();
+}
+function wizSelectClient(id) {
+  wiz.clientId = id;
+  wiz.isNewClient = false;
+  renderWiz();
+}
+function wizNext() { wiz.step++; renderWiz(); }
+function wizBack() { wiz.step--; renderWiz(); }
+
+function wizStep2Next() {
+  if(wiz.isNewClient) {
+    if(!(wiz.newClientData.nazwa||'').trim()) { showToast('Wpisz nazwę klienta'); return; }
+  } else {
+    if(!wiz.clientId) { showToast('Wybierz klienta z listy lub dodaj nowego'); return; }
+  }
+  wizNext();
+}
+
+function wizStep3Next() {
+  const m = machines.find(x => x.id === wiz.machineId);
+  const klientNazwa = wiz.isNewClient ? wiz.newClientData.nazwa : (clients.find(c=>c.id===wiz.clientId)||{}).nazwa||'';
+
+  // Zapisz nowego klienta jeśli trzeba
+  if(wiz.isNewClient && wiz.newClientData.nazwa) {
+    const newC = { id:clients.length+1, nazwa:wiz.newClientData.nazwa, nip:wiz.newClientData.nip||'',
+      miejscowosc:wiz.newClientData.miasto||'', handlowiec:'', dzial:'AG', liczba_umow:0,
+      ostatnia_aktywnosc:new Date().toISOString().split('T')[0] };
+    clients.push(newC);
+    wiz.clientId = newC.id;
+    wiz.isNewClient = false;
+    renderClients();
+    document.getElementById('navCountKlienci').textContent = clients.length;
+  }
+
+  // Zapisz dane na maszynie
+  const klient = clients.find(c=>c.id===wiz.clientId);
+  m.klient      = klient ? klient.nazwa : klientNazwa;
+  m.nip         = klient ? klient.nip   : (wiz.newClientData.nip||'');
+  m.konfiguracja = [...wiz.config];
+  if(wiz.cenaOferta) {
+    m.cena_oferta = wiz.cenaOferta;
+    if(m.cena) m.rabat = parseFloat(((1-wiz.cenaOferta/m.cena)*100).toFixed(1));
+  }
+
+  const mg = calcMargin(m);
+  if(mg === null || mg < 6) {
+    m.status = 'Oferta';
+    showToast('Oferta wysłana do RKS', 'green');
+  } else {
+    m.status = 'Rezerwacja';
+    showToast('Marża OK – maszyna zarezerwowana bez akceptacji RKS', 'green');
+  }
+  renderStepper(); renderStats(); renderTable();
+  wiz.step = 4;
+  renderWiz();
+}
+
+function resetWiz() {
+  wiz = { step:1, machineId:null, config:[], clientId:null, isNewClient:false, newClientData:{}, cenaOferta:null };
+  renderWiz();
+}
+
+// ─────────────────────────────────────────────
+// VIEWS
+// ─────────────────────────────────────────────
+function switchView(view, el) {
+  document.querySelectorAll('.main-nav-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  if(view === 'sprzedaz') renderWiz();
+}
+
+// ─────────────────────────────────────────────
+// KLIENCI
+// ─────────────────────────────────────────────
+function renderClients() {
+  const q  = document.getElementById('clientSearch').value.toLowerCase();
+  const df = document.getElementById('clientDzialFilter').value;
+  let rows = clients.filter(c => {
+    if(df && c.dzial !== df) return false;
+    if(q) {
+      const hay = [c.nazwa, c.nip, c.handlowiec, c.miejscowosc].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const tbody = document.getElementById('clientBody');
+  if(!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="no-results">Brak klientów spełniających kryteria</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(c => `
+    <tr onclick="showToast('Klient: ${c.nazwa}')">
+      <td><strong>${c.nazwa}</strong></td>
+      <td style="font-size:12px;color:var(--gray-500)">${c.nip}</td>
+      <td>${c.miejscowosc}</td>
+      <td>${c.handlowiec}</td>
+      <td><span class="chip">${c.dzial}</span></td>
+      <td style="text-align:center;font-weight:700">${c.liczba_umow}</td>
+      <td style="color:var(--gray-500)">${c.ostatnia_aktywnosc}</td>
+    </tr>`).join('');
+}
+
+// ─────────────────────────────────────────────
+// DOKUMENTY
+// ─────────────────────────────────────────────
+function docTypClass(typ) {
+  const m = { 'Umowa':'badge-doc-umowa', 'Faktura':'badge-doc-faktura', 'Protokół':'badge-doc-protokol', 'CMR':'badge-doc-cmr' };
+  return 'badge ' + (m[typ] || 'badge-doc-inne');
+}
+function docStatusClass(status) {
+  const m = { 'Podpisana':'badge-doc-umowa', 'Podpisany':'badge-doc-umowa', 'Potwierdzony':'badge-doc-cmr', 'Opłacona':'badge-oplacona', 'Oczekuje na płatność':'badge-oczekuje' };
+  return 'badge ' + (m[status] || 'badge-doc-inne');
+}
+function renderDocuments() {
+  const q  = document.getElementById('docSearch').value.toLowerCase();
+  const tf = document.getElementById('docTypFilter').value;
+  let rows = documents.filter(d => {
+    if(tf && d.typ !== tf) return false;
+    if(q) {
+      const hay = [d.numer, d.klient, d.maszyna, d.typ].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const tbody = document.getElementById('docBody');
+  if(!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="no-results">Brak dokumentów spełniających kryteria</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(d => `
+    <tr onclick="showToast('Dokument: ${d.numer}')">
+      <td><strong>${d.numer}</strong></td>
+      <td><span class="${docTypClass(d.typ)}">${d.typ}</span></td>
+      <td>${d.klient}</td>
+      <td style="color:var(--gray-500)">${d.maszyna}</td>
+      <td style="color:var(--gray-500)">${d.data}</td>
+      <td><span class="${docStatusClass(d.status)}">${d.status}</span></td>
+      <td><button class="btn-sm" onclick="event.stopPropagation();showToast('Pobieranie: ${d.numer}')">Pobierz</button></td>
+    </tr>`).join('');
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+renderStepper();
+renderStats();
+renderTable();
+renderClients();
+renderDocuments();
+renderUsers();
+// Ustaw widoczność elementów dla domyślnej roli (AG)
+changeRole(currentRole, true);
+</script>
+</body>
+</html>
