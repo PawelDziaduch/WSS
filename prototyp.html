@@ -1090,7 +1090,7 @@ const roleFields = {
   AG:         ['status','numer_zam','vin','producent','model','rodzaj','demo','mth','magazyn','finansowanie','data_rezerwacji','rezerwacja_klient','rezerwacja_handlowiec','rok_prod','data_przy_zamowieniu','nr_id_profile','homologacja','rejestracja','ubezpieczenie','nr_faktury_klienta','jd_link','nr_umowy','data_umowy','klient','handlowiec','rks','cena_sprzedazy','data_presold','data_realizacji','data_przydzialu','cmr','planowana_faktura'],
   RKS:        ['status','dzial','model','klient','handlowiec','magazyn','nr_umowy','data_umowy','cena','rabat','marza','marzaP','finansowanie','data_realizacji','komentarz'],
   Pozostale:  ['status','dzial','model','klient','handlowiec','nr_umowy','data_realizacji','finansowanie','marza'],
-  Handlowiec: ['status','dzial','model','klient','handlowiec','magazyn','nr_umowy','data_umowy','cena','rabat','data_realizacji','finansowanie'],
+  Handlowiec: ['status','numer_zam','vin','producent','model','rok_prod','data_przy_zamowieniu','demo','data_realizacji','magazyn','cena_po_rabacie','cena_sprzedazy','info_rezerwacji','klient','nr_umowy'],
   Serwis:     ['status','numer_zam','vin','producent','model','rodzaj','magazyn','data_przydzialu','cmr','planowana_faktura','nr_umowy','data_umowy','data_realizacji','klient','handlowiec','rejestracja','rok_prod','komentarz','doposazenie_jest','doposazenie_powinno'],
 };
 
@@ -1103,9 +1103,9 @@ const colLabels = {
   rabat:'Rabat %', zakup:'Zakup', marza:'Marża', marzaP:'Marża %', finansowanie:'Finansowanie',
   data_realizacji:'Data realizacji', komentarz:'Komentarz', vin:'VIN', rejestracja:'Rejestracja', rok_prod:'Rok prod.',
   numer_zam:'Nr zamówienia', producent:'Producent', rodzaj:'Rodzaj maszyny', rks:'RKS',
-  cena_sprzedazy:'Cena sprzedaży', data_presold:'Data presold', data_przydzialu:'Data przydziału', cmr:'CMR', planowana_faktura:'Planowana faktura',
+  cena_po_rabacie:'Cena zakupowa po rabatach', cena_sprzedazy:'Sugerowana cena sprzedaży', info_rezerwacji:'Info o rezerwacji', data_realizacji:'Aktualna data dostawy', data_presold:'Data presold', data_przydzialu:'Data przydziału', cmr:'CMR', planowana_faktura:'Planowana faktura',
   doposazenie_jest:'Doposażenie - stan', doposazenie_powinno:'Doposażenie - oczekiwane',
-  demo:'DEMO', mth:'MTH', data_rezerwacji:'Data rezerwacji', rezerwacja_klient:'Rezerwacja klient', rezerwacja_handlowiec:'Rezerwacja handlowiec', data_przy_zamowieniu:'Data przy zamówieniu', nr_id_profile:'Nr ID Profile', homologacja:'Homologacja', ubezpieczenie:'Ubezpieczenie', nr_faktury_klienta:'Nr faktury klienta', jd_link:'JD link',
+  demo:'DEMO', mth:'MTH', data_rezerwacji:'Data rezerwacji', rezerwacja_klient:'Rezerwacja klient', rezerwacja_handlowiec:'Rezerwacja handlowiec', data_przy_zamowieniu:'Data dostawy przy zamówieniu', nr_id_profile:'Nr ID Profile', homologacja:'Homologacja', ubezpieczenie:'Ubezpieczenie', nr_faktury_klienta:'Nr faktury klienta', jd_link:'JD link',
 };
 
 let currentRole = 'Handlowiec';
@@ -1249,6 +1249,22 @@ function renderTable() {
       if(c==='planowana_faktura') {
         const formatted = formatDate(m.planowana_faktura);
         return `<td title="${m.planowana_faktura || '—'}">${formatted}</td>`;
+      }
+      if(c==='cena_po_rabacie') {
+        const value = m.cena ? Math.round(m.cena * (1 - (m.rabat||0)/100)) : 0;
+        return `<td title="${value ? value.toLocaleString('pl-PL') + ' PLN' : '—'}">${value ? value.toLocaleString('pl-PL') + ' PLN' : '—'}</td>`;
+      }
+      if(c==='info_rezerwacji') {
+        const reservation = m.rezerwacja_klient ? `${m.rezerwacja_klient} • ${m.rezerwacja_handlowiec || '—'} • ${m.data_rezerwacji || 'brak daty'}` : (m.status==='Rezerwacja' ? 'Zarezerwowana' : 'Brak rezerwacji');
+        return `<td title="${reservation}">${reservation}</td>`;
+      }
+      if(c==='demo') {
+        const badge = m.demo === 'Tak' ? `<span class="field-value warning" style="display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px">DEMO</span>` : `<span style="color:var(--gray-500)">Nie</span>`;
+        return `<td title="${m.demo || 'Nie'}">${badge}</td>`;
+      }
+      if(c==='data_przy_zamowieniu' || c==='data_realizacji' || c==='data_umowy' || c==='planowana_faktura') {
+        const formatted = formatDate(m[c]);
+        return `<td title="${m[c] || '—'}">${formatted}</td>`;
       }
       const v = m[c];
       if(!v) return `<td style="color:var(--gray-300)">—</td>`;
