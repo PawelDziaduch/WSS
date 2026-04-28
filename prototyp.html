@@ -170,7 +170,49 @@
   }
 
   /* ─── TABLE ─── */
-  .table-wrap { flex: 1; overflow: auto; }
+  .table-wrap { flex: 1; overflow: auto; position: relative; }
+  .row-hover-preview {
+    display: none;
+    position: absolute;
+    width: min(360px, calc(100% - 20px));
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    padding: 14px;
+    font-size: 12px;
+    color: var(--gray-800);
+    z-index: 20;
+  }
+  .row-hover-preview .preview-title {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--gray-900);
+  }
+  .row-hover-preview .preview-section {
+    margin-bottom: 12px;
+  }
+  .row-hover-preview .preview-label {
+    display: inline-block;
+    min-width: 100px;
+    color: var(--gray-600);
+  }
+  .row-hover-preview .preview-line {
+    margin-bottom: 6px;
+  }
+  .row-hover-preview .preview-link {
+    color: var(--blue);
+    text-decoration: underline;
+  }
+  .row-hover-preview .preview-note {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: var(--gray-100);
+    border-radius: 8px;
+    color: var(--gray-600);
+    font-size: 11.5px;
+  }
   table { width: 100%; border-collapse: collapse; }
   thead tr { background: var(--gray-100); position: sticky; top: 0; z-index: 10; }
   th {
@@ -701,6 +743,7 @@
         </thead>
         <tbody id="tableBody"></tbody>
       </table>
+      <div class="row-hover-preview" id="rowHoverPreview"></div>
     </div>
   </div>
 
@@ -988,6 +1031,31 @@
   </div>
 </div>
 
+<!-- MODAL: Rezerwacja maszyny -->
+<div class="modal-overlay" id="modalReserve">
+  <div class="modal" style="width:520px">
+    <div class="modal-title">Rezerwacja maszyny</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Link do szansy sprzedaży w CRM *</label>
+        <input class="form-input" id="reserveCrmLink" placeholder="Wklej link do CRM...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data do kiedy wysłana jest prośba o rezerwację *</label>
+        <input class="form-input" id="reserveDeadline" type="date">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Komentarz</label>
+        <input class="form-input" id="reserveComment" placeholder="np. prośba wysłana do klienta w tygodniu...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeReserveModal()">Anuluj</button>
+      <button class="btn primary" onclick="saveReservation()">Zapisz rezerwację</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Odrzucenie oferty przez RKS -->
 <div class="modal-overlay" id="modalRksReject">
   <div class="modal" style="width:480px">
@@ -1103,7 +1171,7 @@ const colLabels = {
   rabat:'Rabat %', zakup:'Zakup', marza:'Marża', marzaP:'Marża %', finansowanie:'Finansowanie',
   data_realizacji:'Data realizacji', komentarz:'Komentarz', vin:'VIN', rejestracja:'Rejestracja', rok_prod:'Rok prod.',
   numer_zam:'Nr zamówienia', producent:'Producent', rodzaj:'Rodzaj maszyny', rks:'RKS',
-  cena_po_rabacie:'Cena zakupowa po rabatach', cena_sprzedazy:'Sugerowana cena sprzedaży', info_rezerwacji:'Info o rezerwacji', data_realizacji:'Aktualna data dostawy', data_presold:'Data presold', data_przydzialu:'Data przydziału', cmr:'CMR', planowana_faktura:'Planowana faktura',
+  cena_po_rabacie:'Cena zakupowa po rabatach', cena_sprzedazy:'Sugerowana cena sprzedaży', info_rezerwacji:'Info o rezerwacji', data_realizacji:'Aktualna data dostawy', data_presold:'Data presold', data_przydzialu:'Data przydziału', cmr:'CMR', planowana_faktura:'Planowana faktura', rezerwacja_do:'Rezerwacja do', crm_link:'Link CRM',
   doposazenie_jest:'Doposażenie - stan', doposazenie_powinno:'Doposażenie - oczekiwane',
   demo:'DEMO', mth:'MTH', data_rezerwacji:'Data rezerwacji', rezerwacja_klient:'Rezerwacja klient', rezerwacja_handlowiec:'Rezerwacja handlowiec', data_przy_zamowieniu:'Data dostawy przy zamówieniu', nr_id_profile:'Nr ID Profile', homologacja:'Homologacja', ubezpieczenie:'Ubezpieczenie', nr_faktury_klienta:'Nr faktury klienta', jd_link:'JD link',
 };
@@ -1255,7 +1323,7 @@ function renderTable() {
         return `<td title="${value ? value.toLocaleString('pl-PL') + ' PLN' : '—'}">${value ? value.toLocaleString('pl-PL') + ' PLN' : '—'}</td>`;
       }
       if(c==='info_rezerwacji') {
-        const reservation = m.rezerwacja_klient ? `${m.rezerwacja_klient} • ${m.rezerwacja_handlowiec || '—'} • ${m.data_rezerwacji || 'brak daty'}` : (m.status==='Rezerwacja' ? 'Zarezerwowana' : 'Brak rezerwacji');
+        const reservation = m.rezerwacja_klient ? `${m.rezerwacja_klient} • ${m.rezerwacja_handlowiec || '—'} • ${m.rezerwacja_do ? formatDate(m.rezerwacja_do) : 'brak terminu'}` : (m.status==='Rezerwacja' ? 'Zarezerwowana' : 'Brak rezerwacji');
         return `<td title="${reservation}">${reservation}</td>`;
       }
       if(c==='demo') {
@@ -1270,7 +1338,7 @@ function renderTable() {
       if(!v) return `<td style="color:var(--gray-300)">—</td>`;
       return `<td title="${v}">${v}</td>`;
     }).join('');
-    return `<tr class="${sel?'selected':''}" onclick="selectMachine(${m.id})">
+    return `<tr class="${sel?'selected':''}" onclick="selectMachine(${m.id})" onmouseenter="showRowPreview(event, ${m.id})" onmouseleave="hideRowPreview()">
       ${cells}
       <td><button class="btn-sm" onclick="event.stopPropagation();selectMachine(${m.id})">Otwórz →</button></td>
     </tr>`;
@@ -1497,7 +1565,7 @@ function getActions(m) {
   // ── Handlowiec: wybiera klienta → konfiguruje → wysyła do RKS ──
   if(role === 'Handlowiec') {
     if(m.status === 'Dostępna') {
-      btns += `<button class="btn-sm primary" onclick="openClientModal(${m.id})">+ Przypisz klienta</button>`;
+      btns += `<button class="btn-sm primary" onclick="openReserveModal(${m.id})">Rezerwuj</button>`;
     }
     btns += `<button class="btn-sm" onclick="openConfigModal(${m.id})">Konfiguruj maszynę</button>`;
     if(m.klient && m.status === 'Dostępna') {
@@ -1758,6 +1826,7 @@ function saveConfig() {
 // ─────────────────────────────────────────────
 let clientTargetId = null;
 let selectedClientModalId = null;
+let reserveTargetId = null;
 
 function openClientModal(id) {
   clientTargetId = id;
@@ -1829,6 +1898,82 @@ function assignClient() {
   renderTable();
   renderPanel(m, 'dane');
   showToast('Klient przypisany: ' + m.klient + ' · Teraz skonfiguruj maszynę i wyślij ofertę do RKS', 'green');
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function openReserveModal(id) {
+  reserveTargetId = id;
+  const m = machines.find(x => x.id === id);
+  document.getElementById('reserveCrmLink').value = m.crm_link || '';
+  document.getElementById('reserveDeadline').value = m.rezerwacja_do || '';
+  document.getElementById('reserveComment').value = m.reserve_comment || '';
+  document.getElementById('modalReserve').classList.add('open');
+}
+function closeReserveModal() {
+  document.getElementById('modalReserve').classList.remove('open');
+}
+function saveReservation() {
+  const m = machines.find(x => x.id === reserveTargetId);
+  const link = document.getElementById('reserveCrmLink').value.trim();
+  const deadline = document.getElementById('reserveDeadline').value;
+  const comment = document.getElementById('reserveComment').value.trim();
+  if(!link) { showToast('Wklej link do szansy sprzedaży w CRM'); return; }
+  if(!deadline) { showToast('Ustaw datę do kiedy wysłana jest prośba o rezerwację'); return; }
+  m.crm_link = link;
+  m.rezerwacja_do = deadline;
+  m.data_rezerwacji = new Date().toISOString().split('T')[0];
+  m.rezerwacja_klient = m.rezerwacja_klient || m.klient || '';
+  m.rezerwacja_handlowiec = m.rezerwacja_handlowiec || m.handlowiec || '';
+  m.reserve_comment = comment;
+  if(m.status !== 'Rezerwacja') m.status = 'Rezerwacja';
+  closeReserveModal();
+  renderTable();
+  if(selectedId === reserveTargetId) renderPanel(m, activeTab);
+  showToast('Rezerwacja maszyny zapisana', 'green');
+}
+function showRowPreview(event, id) {
+  const preview = document.getElementById('rowHoverPreview');
+  const m = machines.find(x => x.id === id);
+  if(!m) return;
+  const crmLinkHtml = m.crm_link ? `<a class="preview-link" href="${escapeHtml(m.crm_link)}" target="_blank">Otwórz</a>` : 'Brak';
+  preview.innerHTML = `
+    <div class="preview-title">Dane dodatkowe • ${escapeHtml(m.model || '–')}</div>
+    <div class="preview-section">
+      <div class="preview-line"><span class="preview-label">Timeline</span>${m.status === 'Rezerwacja' ? 'Rezerwacja w toku' : statusLabel(m.status)}</div>
+      <div class="preview-line"><span class="preview-label">Data rezerwacji</span>${escapeHtml(m.data_rezerwacji || 'brak')}</div>
+      <div class="preview-line"><span class="preview-label">Status</span>${statusLabel(m.status)}</div>
+    </div>
+    <div class="preview-section">
+      <div class="preview-title" style="font-size:11px">Dane maszyny</div>
+      <div class="preview-line"><span class="preview-label">Rejestracja</span>${escapeHtml(m.rejestracja || 'Brak')}</div>
+      <div class="preview-line"><span class="preview-label">Ubezpieczenie</span>${escapeHtml(m.ubezpieczenie || 'Brak')}</div>
+      <div class="preview-line"><span class="preview-label">Ilość MTH</span>${escapeHtml(m.mth || 'Brak')}</div>
+    </div>
+    <div class="preview-section">
+      <div class="preview-title" style="font-size:11px">Rezerwacja</div>
+      <div class="preview-line"><span class="preview-label">Klient</span>${escapeHtml(m.rezerwacja_klient || m.klient || 'Brak')}</div>
+      <div class="preview-line"><span class="preview-label">Handlowiec</span>${escapeHtml(m.rezerwacja_handlowiec || m.handlowiec || 'Brak')}</div>
+      <div class="preview-line"><span class="preview-label">CRM link</span>${crmLinkHtml}</div>
+      <div class="preview-line"><span class="preview-label">Rezerwacja do</span>${escapeHtml(m.rezerwacja_do || 'Brak')}</div>
+      <div class="preview-line"><span class="preview-label">Notatka</span>${escapeHtml(m.reserve_comment || m.komentarz || 'Brak')}</div>
+    </div>
+    <div class="preview-note">Zdjęcia, dokumenty i załączniki dostępne po dodaniu do maszyny.</div>
+  `;
+  const row = event.currentTarget || event.target.closest('tr');
+  const wrap = document.querySelector('.table-wrap');
+  const wrapRect = wrap.getBoundingClientRect();
+  const rowRect = row.getBoundingClientRect();
+  const top = rowRect.bottom - wrapRect.top + 8;
+  let left = Math.min(rowRect.left - wrapRect.left, wrapRect.width - 380);
+  if(left < 8) left = 8;
+  preview.style.top = `${top}px`;
+  preview.style.left = `${left}px`;
+  preview.style.display = 'block';
+}
+function hideRowPreview() {
+  document.getElementById('rowHoverPreview').style.display = 'none';
 }
 
 // ─────────────────────────────────────────────
