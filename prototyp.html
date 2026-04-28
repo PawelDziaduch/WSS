@@ -1090,7 +1090,7 @@ const roleFields = {
   RKS:        ['status','dzial','model','klient','handlowiec','magazyn','nr_umowy','data_umowy','cena','rabat','marza','marzaP','finansowanie','data_realizacji','komentarz'],
   Pozostale:  ['status','dzial','model','klient','handlowiec','nr_umowy','data_realizacji','finansowanie','marza'],
   Handlowiec: ['status','dzial','model','klient','handlowiec','magazyn','nr_umowy','data_umowy','cena','rabat','data_realizacji','finansowanie'],
-  Serwis:     ['status','model','vin','klient','magazyn','nr_umowy','data_realizacji','rejestracja','rok_prod'],
+  Serwis:     ['status','numer_zam','vin','producent','model','rodzaj','magazyn','data_przydzialu','cmr','planowana_faktura','nr_umowy','data_umowy','data_realizacji','klient','handlowiec','rejestracja','rok_prod','komentarz'],
 };
 
 // Czy dana rola widzi pola finansowe szczegółowe
@@ -1220,6 +1220,10 @@ function renderTable() {
     }
     return true;
   });
+
+  if(currentRole === 'Serwis' && !sf) {
+    rows = rows.filter(m => ['Umowa - Dostarczone','Umowa - Zafakturowane'].includes(m.status));
+  }
 
   const tbody = document.getElementById('tableBody');
   if(!rows.length) {
@@ -1480,6 +1484,18 @@ function getActions(m) {
       btns += `<button class="btn-sm primary" onclick="rksAccept(${m.id})">✓ Zaakceptuj ofertę</button>`;
       btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rksReject(${m.id})">✕ Odrzuć ofertę</button>`;
       btns += `<button class="btn-sm blue" onclick="generateContract(${m.id})">Podgląd oferty</button>`;
+    }
+    btns += `<button class="btn-sm" onclick="showToast('Kopiowanie linku...')">🔗 Udostępnij</button>`;
+    return btns;
+  }
+
+  // ── Serwis: przygotowanie i protokół wydania ──
+  if(role === 'Serwis') {
+    if(['Umowa - Dostarczone','Umowa - Zafakturowane'].includes(m.status)) {
+      btns += `<button class="btn-sm primary" onclick="generateProtocol(${m.id})">Generuj protokół wydania</button>`;
+    }
+    if(m.status === 'Umowa - wydane') {
+      btns += `<span style="font-size:11px;color:var(--green);font-weight:600;padding:6px 8px">✔ Protokół wydania podpisany</span>`;
     }
     btns += `<button class="btn-sm" onclick="showToast('Kopiowanie linku...')">🔗 Udostępnij</button>`;
     return btns;
@@ -1870,6 +1886,73 @@ function generateContract(id) {
       <div style="flex:1"><div style="border-bottom:1px solid #000;margin-bottom:6px;margin-top:44px"></div><div style="font-size:9pt;color:#555">Kupujący (podpis)<br><b>${m.klient||'Klient'}</b></div></div>
     </div>
   `;
+  document.getElementById('contractOverlay').classList.add('open');
+}
+
+function generateProtocol(id) {
+  const m = machines.find(x => x.id === id);
+  if(!m) return;
+  const nrProtokolu = 'PROT/' + new Date().getFullYear() + '/' + String(id).padStart(3,'0');
+  const today = new Date().toLocaleDateString('pl-PL');
+  document.getElementById('contractTitle').textContent = 'Protokół wydania ' + nrProtokolu;
+  document.getElementById('contractDoc').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:18px;margin-bottom:24px">
+      <div>
+        <div style="font-size:22pt;font-weight:bold;font-family:Arial,sans-serif;letter-spacing:-0.5px">Wanicki <span style="font-weight:300">AGRO</span></div>
+        <div style="font-size:9.5pt;color:#555;margin-top:4px">Wanicki Sp. z o. o. · ul. Przykładowa 1 · 43-300 Bielsko-Biała<br>NIP: 547-000-00-00 · tel. +48 33 000 00 00 · wanicki.pl</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13pt;font-weight:bold">${nrProtokolu}</div>
+        <div style="font-size:10pt;color:#555">Data: ${today}</div>
+      </div>
+    </div>
+    <h2 style="text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:1px;margin-bottom:24px">Protokół wydania maszyny</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">
+      <div>
+        <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Sprzedawca</div>
+        <table style="font-size:11pt;width:100%">
+          <tr><td style="color:#555;padding:2px 8px 2px 0;width:90px">Firma:</td><td><b>Wanicki Sp. z o. o.</b></td></tr>
+          <tr><td style="color:#555;padding:2px 8px 2px 0">NIP:</td><td>547-000-00-00</td></tr>
+          <tr><td style="color:#555;padding:2px 8px 2px 0">Adres:</td><td>ul. Przykładowa 1, 43-300 Bielsko-Biała</td></tr>
+          <tr><td style="color:#555;padding:2px 8px 2px 0">Serwis:</td><td>${m.handlowiec || '—'}</td></tr>
+        </table>
+      </div>
+      <div>
+        <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Odbiorca</div>
+        <table style="font-size:11pt;width:100%">
+          <tr><td style="color:#555;padding:2px 8px 2px 0;width:90px">Firma/Osoba:</td><td><b>${m.klient||'—'}</b></td></tr>
+          <tr><td style="color:#555;padding:2px 8px 2px 0">NIP:</td><td>${m.nip||'—'}</td></tr>
+          <tr><td style="color:#555;padding:2px 8px 2px 0">Adres:</td><td>—</td></tr>
+        </table>
+      </div>
+    </div>
+    <div style="margin-bottom:18px">
+      <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Wydanie maszyny</div>
+      <table style="font-size:11pt;width:100%">
+        <tr><td style="color:#555;padding:2px 8px 2px 0;width:160px">Model:</td><td><b>${m.model}</b></td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Producent:</td><td>${m.producent}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Rodzaj:</td><td>${m.rodzaj}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Rok produkcji:</td><td>${m.rok_prod||'—'}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">VIN:</td><td style="font-family:monospace">${m.vin}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Magazyn:</td><td>${m.magazyn||'—'}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Nr zamówienia:</td><td>${m.numer_zam||'—'}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Data przydziału:</td><td>${m.data_przydzialu||'—'}</td></tr>
+      </table>
+    </div>
+    <div style="margin-bottom:18px">
+      <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Uwagi serwisowe</div>
+      <p style="font-size:11pt;min-height:30px">${m.komentarz || 'Brak dodatkowych uwag.'}</p>
+    </div>
+    <div style="display:flex;gap:60px;margin-top:52px">
+      <div style="flex:1"><div style="border-bottom:1px solid #000;margin-bottom:6px;margin-top:44px"></div><div style="font-size:9pt;color:#555">Serwis (podpis)<br><b>${m.handlowiec||'Serwis'}</b></div></div>
+      <div style="flex:1"><div style="border-bottom:1px solid #000;margin-bottom:6px;margin-top:44px"></div><div style="font-size:9pt;color:#555">Odbiorca (podpis)<br><b>${m.klient||'Klient'}</b></div></div>
+    </div>
+  `;
+  if(m.status !== 'Umowa - wydane') {
+    m.status = 'Umowa - wydane';
+    documents.push({ id: documents.length + 1, numer: nrProtokolu, typ: 'Protokół', klient: m.klient || '—', maszyna: m.model, data: new Date().toISOString().split('T')[0], status: 'Podpisany' });
+    renderStepper(); renderStats(); renderTable(); renderPanel(m, activeTab); renderDocuments();
+  }
   document.getElementById('contractOverlay').classList.add('open');
 }
 // ─────────────────────────────────────────────
