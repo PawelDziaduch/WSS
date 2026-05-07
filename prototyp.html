@@ -1074,6 +1074,85 @@
   </div>
 </div>
 
+<!-- MODAL: Edycja maszyny (AG) -->
+<div class="modal-overlay" id="modalEdit">
+  <div class="modal" style="width:860px;max-height:92vh;display:flex;flex-direction:column">
+    <div class="modal-title">Edytuj dane maszyny</div>
+    <div style="overflow-y:auto;flex:1;padding-right:4px">
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-500);margin-bottom:12px">Dane maszyny</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Model</label><input class="form-input" id="e_model"></div>
+        <div class="form-group"><label class="form-label">Producent</label><input class="form-input" id="e_producent"></div>
+        <div class="form-group"><label class="form-label">VIN / Nr. seryjny</label><input class="form-input" id="e_vin"></div>
+        <div class="form-group"><label class="form-label">Dział</label>
+          <select class="form-input" id="e_dzial"><option>AG</option><option>TURF</option><option>Kramer</option><option>Pozostałe</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Rodzaj</label>
+          <select class="form-input" id="e_rodzaj"><option>Ciągnik</option><option>Kombajn</option><option>Przyczepa</option><option>Ładowarka</option><option>Inne</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Demo</label>
+          <select class="form-input" id="e_demo"><option>Nie</option><option>Tak</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Rok prod.</label><input class="form-input" id="e_rok_prod" type="number" placeholder="2024"></div>
+        <div class="form-group"><label class="form-label">MTH</label><input class="form-input" id="e_mth" type="number" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Oddział</label>
+          <select class="form-input" id="e_magazyn"><option>Mogilany</option><option>Kajetanów</option><option>Wolbórz</option><option>Jarosław</option><option>Pułankowice</option><option>Smęgorzów</option><option>Wola Piasecka</option><option>Sitaniec</option><option>Janówek</option><option>Kutno</option><option>Bramki</option><option>Reńska Wieś</option><option>Miechów</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Nr zamówienia</label><input class="form-input" id="e_numer_zam"></div>
+        <div class="form-group"><label class="form-label">Nr ID Profile</label><input class="form-input" id="e_nr_id_profile"></div>
+        <div class="form-group"><label class="form-label">Homologacja</label><input class="form-input" id="e_homologacja"></div>
+        <div class="form-group"><label class="form-label">Rejestracja</label><input class="form-input" id="e_rejestracja"></div>
+        <div class="form-group"><label class="form-label">Ubezpieczenie</label><input class="form-input" id="e_ubezpieczenie"></div>
+        <div class="form-group"><label class="form-label">Nr faktury klienta</label><input class="form-input" id="e_nr_faktury_klienta"></div>
+        <div class="form-group"><label class="form-label">JD Link</label><input class="form-input" id="e_jd_link" placeholder="https://..."></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-500);margin:20px 0 12px;border-top:1px solid var(--gray-200);padding-top:16px">Klient i umowa</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Klient</label><input class="form-input" id="e_klient"></div>
+        <div class="form-group"><label class="form-label">NIP</label><input class="form-input" id="e_nip" placeholder="000-000-00-00"></div>
+        <div class="form-group"><label class="form-label">Handlowiec</label><input class="form-input" id="e_handlowiec"></div>
+        <div class="form-group"><label class="form-label">RKS</label><input class="form-input" id="e_rks"></div>
+        <div class="form-group"><label class="form-label">Nr umowy</label><input class="form-input" id="e_nr_umowy"></div>
+        <div class="form-group"><label class="form-label">Data umowy</label><input class="form-input" id="e_data_umowy" type="date"></div>
+        <div class="form-group"><label class="form-label">Finansowanie</label>
+          <select class="form-input" id="e_finansowanie">
+            <option value="">—</option><option>Gotówka</option><option>Kredyt</option><option>Leasing</option><option>Leasing zwrotny</option><option>Wynajem</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Data realizacji</label><input class="form-input" id="e_data_realizacji" type="date"></div>
+        <div class="form-group"><label class="form-label">Data dostawy przy zamówieniu</label><input class="form-input" id="e_data_przy_zamowieniu" type="date"></div>
+        <div class="form-group"><label class="form-label">Data presold</label><input class="form-input" id="e_data_presold" type="date"></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-500);margin:20px 0 12px;border-top:1px solid var(--gray-200);padding-top:16px">Dostawa i logistyka</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">CMR</label><input class="form-input" id="e_cmr"></div>
+        <div class="form-group"><label class="form-label">Data przydziału</label><input class="form-input" id="e_data_przydzialu" type="date"></div>
+        <div class="form-group"><label class="form-label">Planowana faktura</label><input class="form-input" id="e_planowana_faktura" type="date"></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-500);margin:20px 0 12px;border-top:1px solid var(--gray-200);padding-top:16px">Dane finansowe</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Cena z konfiguratora (PLN)</label><input class="form-input" id="e_cena" type="number" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Rabat handlowy %</label><input class="form-input" id="e_rabat" type="number" placeholder="0" min="0" max="100" step="0.1"></div>
+        <div class="form-group"><label class="form-label">Zakup maszyny (PLN)</label><input class="form-input" id="e_zakup" type="number" placeholder="0"></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-500);margin:20px 0 12px;border-top:1px solid var(--gray-200);padding-top:16px">Uwagi</div>
+      <div class="form-group full">
+        <label class="form-label">Komentarz</label>
+        <textarea class="form-input" id="e_komentarz" rows="3" style="resize:vertical;font-family:var(--font)"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="border-top:1px solid var(--gray-200);margin-top:16px;flex-shrink:0">
+      <button class="btn" onclick="closeEditModal()">Anuluj</button>
+      <button class="btn primary" onclick="saveEdit()">Zapisz zmiany</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Help on Deal (HoD) – wniosek RKS -->
 <div class="modal-overlay" id="modalHod">
   <div class="modal" style="width:480px">
@@ -1610,6 +1689,9 @@ function getActions(m) {
   }
 
   // ── AG i pozostałe: pełny przepływ statusów + decyzje HoD ──
+  if(role === 'AG') {
+    btns += `<button class="btn-sm blue" onclick="openEditModal(${m.id})">✏ Edytuj dane</button>`;
+  }
   if(m.hod_status === 'pending' && role === 'AG') {
     btns += `<button class="btn-sm" style="color:var(--purple);border-color:var(--purple);font-weight:600" onclick="approveHod(${m.id})">✓ Zatwierdź HoD (+${m.hod_rabat}%)</button>`;
     btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rejectHod(${m.id})">✕ Odrzuć HoD</button>`;
@@ -2204,6 +2286,100 @@ function clearRejectionNote(id) {
   const m = machines.find(x => x.id === id);
   m.notatka_odrzucenia = '';
   renderPanel(m, activeTab);
+}
+
+// ─────────────────────────────────────────────
+// EDYCJA MASZYNY (AG)
+// ─────────────────────────────────────────────
+let editTargetId = null;
+
+function openEditModal(id) {
+  editTargetId = id;
+  const m = machines.find(x => x.id === id);
+  document.getElementById('e_model').value          = m.model || '';
+  document.getElementById('e_producent').value      = m.producent || '';
+  document.getElementById('e_vin').value            = m.vin || '';
+  document.getElementById('e_dzial').value          = m.dzial || 'AG';
+  document.getElementById('e_rodzaj').value         = m.rodzaj || 'Ciągnik';
+  document.getElementById('e_demo').value           = m.demo || 'Nie';
+  document.getElementById('e_rok_prod').value       = m.rok_prod || '';
+  document.getElementById('e_mth').value            = m.mth || '';
+  document.getElementById('e_magazyn').value        = m.magazyn || '';
+  document.getElementById('e_numer_zam').value      = m.numer_zam || '';
+  document.getElementById('e_nr_id_profile').value  = m.nr_id_profile || '';
+  document.getElementById('e_homologacja').value    = m.homologacja || '';
+  document.getElementById('e_rejestracja').value    = m.rejestracja || '';
+  document.getElementById('e_ubezpieczenie').value  = m.ubezpieczenie || '';
+  document.getElementById('e_nr_faktury_klienta').value = m.nr_faktury_klienta || '';
+  document.getElementById('e_jd_link').value        = m.jd_link || '';
+  document.getElementById('e_klient').value         = m.klient || '';
+  document.getElementById('e_nip').value            = m.nip || '';
+  document.getElementById('e_handlowiec').value     = m.handlowiec || '';
+  document.getElementById('e_rks').value            = m.rks || '';
+  document.getElementById('e_nr_umowy').value       = m.nr_umowy || '';
+  document.getElementById('e_data_umowy').value     = m.data_umowy || '';
+  document.getElementById('e_finansowanie').value   = m.finansowanie || '';
+  document.getElementById('e_data_realizacji').value        = m.data_realizacji || '';
+  document.getElementById('e_data_przy_zamowieniu').value   = m.data_przy_zamowieniu || '';
+  document.getElementById('e_data_presold').value           = m.data_presold || '';
+  document.getElementById('e_cmr').value            = m.cmr || '';
+  document.getElementById('e_data_przydzialu').value        = m.data_przydzialu || '';
+  document.getElementById('e_planowana_faktura').value      = m.planowana_faktura || '';
+  document.getElementById('e_cena').value           = m.cena || '';
+  document.getElementById('e_rabat').value          = m.rabat || '';
+  document.getElementById('e_zakup').value          = m.zakup || '';
+  document.getElementById('e_komentarz').value      = m.komentarz || '';
+  document.getElementById('modalEdit').classList.add('open');
+}
+function closeEditModal() {
+  document.getElementById('modalEdit').classList.remove('open');
+}
+function saveEdit() {
+  const m = machines.find(x => x.id === editTargetId);
+  m.model               = document.getElementById('e_model').value.trim();
+  m.producent           = document.getElementById('e_producent').value.trim();
+  m.vin                 = document.getElementById('e_vin').value.trim();
+  m.dzial               = document.getElementById('e_dzial').value;
+  m.rodzaj              = document.getElementById('e_rodzaj').value;
+  m.demo                = document.getElementById('e_demo').value;
+  m.rok_prod            = parseInt(document.getElementById('e_rok_prod').value) || m.rok_prod;
+  m.mth                 = parseInt(document.getElementById('e_mth').value) || 0;
+  m.magazyn             = document.getElementById('e_magazyn').value;
+  m.numer_zam           = document.getElementById('e_numer_zam').value.trim();
+  m.nr_id_profile       = document.getElementById('e_nr_id_profile').value.trim();
+  m.homologacja         = document.getElementById('e_homologacja').value.trim();
+  m.rejestracja         = document.getElementById('e_rejestracja').value.trim();
+  m.ubezpieczenie       = document.getElementById('e_ubezpieczenie').value.trim();
+  m.nr_faktury_klienta  = document.getElementById('e_nr_faktury_klienta').value.trim();
+  m.jd_link             = document.getElementById('e_jd_link').value.trim();
+  m.klient              = document.getElementById('e_klient').value.trim();
+  m.nip                 = document.getElementById('e_nip').value.trim();
+  m.handlowiec          = document.getElementById('e_handlowiec').value.trim();
+  m.rks                 = document.getElementById('e_rks').value.trim();
+  m.nr_umowy            = document.getElementById('e_nr_umowy').value.trim();
+  m.data_umowy          = document.getElementById('e_data_umowy').value;
+  m.finansowanie        = document.getElementById('e_finansowanie').value;
+  m.data_realizacji     = document.getElementById('e_data_realizacji').value;
+  m.data_przy_zamowieniu = document.getElementById('e_data_przy_zamowieniu').value;
+  m.data_presold        = document.getElementById('e_data_presold').value;
+  m.cmr                 = document.getElementById('e_cmr').value.trim();
+  m.data_przydzialu     = document.getElementById('e_data_przydzialu').value;
+  m.planowana_faktura   = document.getElementById('e_planowana_faktura').value;
+  m.komentarz           = document.getElementById('e_komentarz').value.trim();
+  const cena  = parseInt(document.getElementById('e_cena').value) || 0;
+  const rabat = parseFloat(document.getElementById('e_rabat').value) || 0;
+  const zakup = parseInt(document.getElementById('e_zakup').value) || 0;
+  m.cena  = cena;
+  m.rabat = rabat;
+  m.zakup = zakup;
+  const cenaPo = Math.round(cena * (1 - rabat / 100));
+  m.marza  = cenaPo - zakup;
+  m.marzaP = cenaPo > 0 ? parseFloat(((m.marza / cenaPo) * 100).toFixed(1)) : 0;
+  closeEditModal();
+  document.getElementById('panelModel').textContent = m.model;
+  document.getElementById('panelVin').textContent   = 'VIN: ' + (m.vin || '—') + ' · ' + (m.dzial || '—');
+  renderStepper(); renderStats(); renderTable(); renderPanel(m, activeTab);
+  showToast('Dane maszyny zaktualizowane', 'green');
 }
 
 // ─────────────────────────────────────────────
