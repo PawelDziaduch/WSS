@@ -1235,6 +1235,32 @@ const statuses = [
 const machines = [];
 
 // ─────────────────────────────────────────────
+// CACHE (localStorage)
+// ─────────────────────────────────────────────
+(function loadFromCache() {
+  try {
+    const raw = localStorage.getItem('wss_data');
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.machines)  machines.push(...d.machines);
+    if (d.clients)   clients.push(...d.clients);
+    if (d.documents) documents.push(...d.documents);
+    if (d.users)     users.push(...d.users);
+  } catch(e) {}
+})();
+
+function saveToCache() {
+  try {
+    localStorage.setItem('wss_data', JSON.stringify({ machines, clients, documents, users }));
+  } catch(e) {}
+}
+
+function clearCache() {
+  localStorage.removeItem('wss_data');
+  showToast('Cache wyczyszczone – odśwież stronę', 'green');
+}
+
+// ─────────────────────────────────────────────
 // ROLE CONFIG
 // ─────────────────────────────────────────────
 const roleAvatars = { AG:'AL', RKS:'RK', Pozostale:'PF', Handlowiec:'HW', Serwis:'SR' };
@@ -1351,6 +1377,7 @@ function renderStats() {
     <div class="stat"><span class="stat-dot" style="background:#166534"></span><span class="stat-num">${wydane}</span><span class="stat-label">wydanych</span></div>
     ${seeFinancials[currentRole]?`<div class="stat" style="margin-left:auto"><span class="stat-label">Łączna marża:</span> <span class="stat-num" style="color:var(--green)">${marza.toLocaleString('pl-PL')} PLN</span></div>`:''}
   `;
+  saveToCache();
 }
 
 // ─────────────────────────────────────────────
