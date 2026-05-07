@@ -1074,6 +1074,31 @@
   </div>
 </div>
 
+<!-- MODAL: Zaliczka -->
+<div class="modal-overlay" id="modalZaliczka">
+  <div class="modal" style="width:440px">
+    <div class="modal-title">Rejestracja zaliczki</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Kwota zaliczki (PLN) *</label>
+        <input type="number" class="form-input" id="zal_kwota" min="1" step="1" placeholder="np. 10000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data wpływu</label>
+        <input type="date" class="form-input" id="zal_data">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Uwagi</label>
+        <input class="form-input" id="zal_uwagi" placeholder="np. przelew, nr transakcji...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeZaliczkaModal()">Anuluj</button>
+      <button class="btn primary" onclick="saveZaliczka()">Zapisz i przejdź do zadatku</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Edycja maszyny (AG) -->
 <div class="modal-overlay" id="modalEdit">
   <div class="modal" style="width:860px;max-height:92vh;display:flex;flex-direction:column">
@@ -1138,6 +1163,9 @@
         <div class="form-group"><label class="form-label">Cena z konfiguratora (PLN)</label><input class="form-input" id="e_cena" type="number" placeholder="0"></div>
         <div class="form-group"><label class="form-label">Rabat handlowy %</label><input class="form-input" id="e_rabat" type="number" placeholder="0" min="0" max="100" step="0.1"></div>
         <div class="form-group"><label class="form-label">Zakup maszyny (PLN)</label><input class="form-input" id="e_zakup" type="number" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Zaliczka (PLN)</label><input class="form-input" id="e_zaliczka" type="number" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Data zaliczki</label><input class="form-input" id="e_zaliczka_data" type="date"></div>
+        <div class="form-group"><label class="form-label">Uwagi do zaliczki</label><input class="form-input" id="e_zaliczka_uwagi" placeholder="np. przelew, nr transakcji..."></div>
       </div>
 
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-500);margin:20px 0 12px;border-top:1px solid var(--gray-200);padding-top:16px">Uwagi</div>
@@ -1588,6 +1616,9 @@ function renderPanel(m, tab) {
           <div class="field-row">
             <div class="field"><div class="field-label">Finansowanie</div><div class="field-value">${m.finansowanie||'—'}</div></div>
             <div class="field"><div class="field-label">Faktura</div><div class="field-value">${m.faktura||'—'}</div></div>
+            <div class="field"><div class="field-label">Zaliczka</div><div class="field-value ${m.zaliczka?'highlight':''}">${m.zaliczka ? m.zaliczka.toLocaleString('pl-PL')+' PLN' : '—'}</div></div>
+            ${m.zaliczka_data ? `<div class="field"><div class="field-label">Data zaliczki</div><div class="field-value">${m.zaliczka_data}</div></div>` : ''}
+            ${m.zaliczka_uwagi ? `<div class="field full"><div class="field-label">Uwagi do zaliczki</div><div class="field-value">${m.zaliczka_uwagi}</div></div>` : ''}
           </div>
         </div>
         <div class="panel-section" style="border:2px solid var(--purple-pale);border-radius:8px;padding:12px;background:var(--purple-pale)">
@@ -1704,7 +1735,7 @@ function getActions(m) {
     btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="changeStatus(${m.id},'Dostępna')">Anuluj rezerwację</button>`;
   }
   if(m.status==='Umowa' && role==='AG') {
-    btns += `<button class="btn-sm primary" onclick="changeStatus(${m.id},'Umowa - zadatek')">Zarejestruj zadatek</button>`;
+    btns += `<button class="btn-sm primary" onclick="openZaliczkaModal(${m.id})">Zarejestruj zaliczkę</button>`;
   }
   if(m.status==='Umowa - zadatek' && role==='AG') {
     btns += `<button class="btn-sm blue" onclick="changeStatus(${m.id},'Umowa - zamówione')">Oznacz jako zamówione</button>`;
@@ -2328,6 +2359,9 @@ function openEditModal(id) {
   document.getElementById('e_cena').value           = m.cena || '';
   document.getElementById('e_rabat').value          = m.rabat || '';
   document.getElementById('e_zakup').value          = m.zakup || '';
+  document.getElementById('e_zaliczka').value       = m.zaliczka || '';
+  document.getElementById('e_zaliczka_data').value  = m.zaliczka_data || '';
+  document.getElementById('e_zaliczka_uwagi').value = m.zaliczka_uwagi || '';
   document.getElementById('e_komentarz').value      = m.komentarz || '';
   document.getElementById('modalEdit').classList.add('open');
 }
@@ -2375,11 +2409,43 @@ function saveEdit() {
   const cenaPo = Math.round(cena * (1 - rabat / 100));
   m.marza  = cenaPo - zakup;
   m.marzaP = cenaPo > 0 ? parseFloat(((m.marza / cenaPo) * 100).toFixed(1)) : 0;
+  m.zaliczka       = parseInt(document.getElementById('e_zaliczka').value) || 0;
+  m.zaliczka_data  = document.getElementById('e_zaliczka_data').value;
+  m.zaliczka_uwagi = document.getElementById('e_zaliczka_uwagi').value.trim();
   closeEditModal();
   document.getElementById('panelModel').textContent = m.model;
   document.getElementById('panelVin').textContent   = 'VIN: ' + (m.vin || '—') + ' · ' + (m.dzial || '—');
   renderStepper(); renderStats(); renderTable(); renderPanel(m, activeTab);
   showToast('Dane maszyny zaktualizowane', 'green');
+}
+
+// ─────────────────────────────────────────────
+// ZALICZKA
+// ─────────────────────────────────────────────
+let zaliczkaTargetId = null;
+
+function openZaliczkaModal(id) {
+  zaliczkaTargetId = id;
+  const m = machines.find(x => x.id === id);
+  document.getElementById('zal_kwota').value = m.zaliczka || '';
+  document.getElementById('zal_data').value  = m.zaliczka_data || new Date().toISOString().split('T')[0];
+  document.getElementById('zal_uwagi').value = m.zaliczka_uwagi || '';
+  document.getElementById('modalZaliczka').classList.add('open');
+}
+function closeZaliczkaModal() {
+  document.getElementById('modalZaliczka').classList.remove('open');
+}
+function saveZaliczka() {
+  const kwota = parseInt(document.getElementById('zal_kwota').value);
+  if(!kwota || kwota <= 0) { showToast('Podaj kwotę zaliczki'); return; }
+  const m = machines.find(x => x.id === zaliczkaTargetId);
+  m.zaliczka       = kwota;
+  m.zaliczka_data  = document.getElementById('zal_data').value;
+  m.zaliczka_uwagi = document.getElementById('zal_uwagi').value.trim();
+  m.status = 'Umowa - zadatek';
+  closeZaliczkaModal();
+  renderStepper(); renderStats(); renderTable(); renderPanel(m, activeTab);
+  showToast('Zaliczka zarejestrowana – status: Umowa – zadatek', 'green');
 }
 
 // ─────────────────────────────────────────────
