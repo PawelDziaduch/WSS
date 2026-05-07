@@ -655,10 +655,10 @@
   <div class="topbar-spacer"></div>
   <label style="color:rgba(255,255,255,0.8);font-size:12px;">Rola:</label>
   <select class="role-select" id="roleSelect" onchange="changeRole(this.value)">
-    <option value="AG">AG (Agro Logistyka)</option>
+    <option value="AG" selected>AG (Agro Logistyka)</option>
     <option value="RKS">RKS (Reg. Kierownik Sprzedaży)</option>
     <option value="Pozostale">Pozostałe firmy</option>
-    <option value="Handlowiec" selected>Handlowiec</option>
+    <option value="Handlowiec" style="display:none">Handlowiec</option>
     <option value="Serwis">Serwis</option>
   </select>
   <div class="avatar" id="avatarEl">HW</div>
@@ -1074,6 +1074,28 @@
   </div>
 </div>
 
+<!-- MODAL: Help on Deal (HoD) – wniosek RKS -->
+<div class="modal-overlay" id="modalHod">
+  <div class="modal" style="width:480px">
+    <div class="modal-title" style="color:var(--purple)">Wniosek Help on Deal (HoD)</div>
+    <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px">Poproś dział administracji o dodatkowy rabat dla klienta. Podaj wartość procentową i uzasadnienie.</p>
+    <div class="form-group">
+      <label class="form-label">Dodatkowy rabat % *</label>
+      <input type="number" class="form-input" id="hodRabat" min="0.1" max="30" step="0.5" placeholder="np. 2.5">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Uzasadnienie *</label>
+      <textarea class="form-input" id="hodKomentarz" rows="4"
+        placeholder="np. Klient porównuje ofertę z konkurencją, dodatkowy rabat pozwoli zamknąć transakcję..."
+        style="resize:vertical;font-family:var(--font);line-height:1.5"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeHodModal()">Anuluj</button>
+      <button class="btn primary" onclick="submitHod()">Wyślij wniosek</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONTRACT OVERLAY -->
 <div class="contract-overlay" id="contractOverlay">
   <div class="contract-toolbar">
@@ -1134,7 +1156,7 @@ const colLabels = {
   demo:'DEMO', mth:'MTH', data_rezerwacji:'Data rezerwacji', rezerwacja_klient:'Rezerwacja klient', rezerwacja_handlowiec:'Rezerwacja handlowiec', data_przy_zamowieniu:'Data dostawy przy zamówieniu', nr_id_profile:'Nr ID Profile', homologacja:'Homologacja', ubezpieczenie:'Ubezpieczenie', nr_faktury_klienta:'Nr faktury klienta', jd_link:'JD link',
 };
 
-let currentRole = 'Handlowiec';
+let currentRole = 'AG';
 let selectedId = null;
 let activeTab = 'dane';
 let activeStep = null;
@@ -1267,7 +1289,11 @@ function renderTable() {
   tbody.innerHTML = rows.map(m => {
     const sel = m.id===selectedId;
     const cells = cols.map(c => {
-      if(c==='status') return `<td><span class="${statusClass(m.status)}">${statusLabel(m.status)}</span></td>`;
+      if(c==='status') {
+        const hodBadge = m.hod_status === 'pending' && seeFinancials[currentRole]
+          ? `<span style="margin-left:5px;background:var(--purple-pale);color:var(--purple);font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;border:1px solid var(--purple)">HoD</span>` : '';
+        return `<td><span class="${statusClass(m.status)}">${statusLabel(m.status)}</span>${hodBadge}</td>`;
+      }
       if(c==='dzial') return `<td><span class="chip">${m.dzial}</span></td>`;
       if(c==='cena_sprzedazy') {
         const sale = m.cena_oferta || (m.cena ? Math.round(m.cena * (1 - (m.rabat||0) / 100)) : 0);
@@ -1485,6 +1511,10 @@ function renderPanel(m, tab) {
             <div class="field"><div class="field-label">Faktura</div><div class="field-value">${m.faktura||'—'}</div></div>
           </div>
         </div>
+        <div class="panel-section" style="border:2px solid var(--purple-pale);border-radius:8px;padding:12px;background:var(--purple-pale)">
+          <div class="panel-section-title" style="color:var(--purple)">Help on Deal (HoD)</div>
+          ${renderHodSection(m, role)}
+        </div>
       `;
     }
   }
@@ -1549,12 +1579,19 @@ function getActions(m) {
     return btns;
   }
 
-  // ── RKS: akceptuje lub odrzuca oferty handlowców ──
+  // ── RKS: akceptuje lub odrzuca oferty, wnioskuje o HoD ──
   if(role === 'RKS') {
     if(m.status === 'Oferta') {
       btns += `<button class="btn-sm primary" onclick="rksAccept(${m.id})">✓ Zaakceptuj ofertę</button>`;
       btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rksReject(${m.id})">✕ Odrzuć ofertę</button>`;
       btns += `<button class="btn-sm blue" onclick="generateContract(${m.id})">Podgląd oferty</button>`;
+    }
+    if(!m.hod_status || m.hod_status === 'rejected') {
+      btns += `<button class="btn-sm" style="color:var(--purple);border-color:var(--purple)" onclick="openHodModal(${m.id})">Wnioskuj o HoD</button>`;
+    } else if(m.hod_status === 'pending') {
+      btns += `<span style="font-size:11px;color:var(--purple);font-weight:600;padding:6px 8px">⏳ HoD oczekuje na akceptację</span>`;
+    } else if(m.hod_status === 'approved') {
+      btns += `<span style="font-size:11px;color:var(--green);font-weight:600;padding:6px 8px">✔ HoD zatwierdzony (+${m.hod_rabat}%)</span>`;
     }
     btns += `<button class="btn-sm" onclick="showToast('Kopiowanie linku...')">🔗 Udostępnij</button>`;
     return btns;
@@ -1572,7 +1609,11 @@ function getActions(m) {
     return btns;
   }
 
-  // ── AG i pozostałe: pełny przepływ statusów ──
+  // ── AG i pozostałe: pełny przepływ statusów + decyzje HoD ──
+  if(m.hod_status === 'pending' && role === 'AG') {
+    btns += `<button class="btn-sm" style="color:var(--purple);border-color:var(--purple);font-weight:600" onclick="approveHod(${m.id})">✓ Zatwierdź HoD (+${m.hod_rabat}%)</button>`;
+    btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rejectHod(${m.id})">✕ Odrzuć HoD</button>`;
+  }
   if(m.status==='Dostępna' && role==='AG') {
     btns += `<button class="btn-sm orange" onclick="changeStatus(${m.id},'Rezerwacja')">Zarezerwuj</button>`;
   }
@@ -2163,6 +2204,87 @@ function clearRejectionNote(id) {
   const m = machines.find(x => x.id === id);
   m.notatka_odrzucenia = '';
   renderPanel(m, activeTab);
+}
+
+// ─────────────────────────────────────────────
+// HELP ON DEAL (HoD)
+// ─────────────────────────────────────────────
+let hodTargetId = null;
+
+function openHodModal(id) {
+  hodTargetId = id;
+  document.getElementById('hodRabat').value = '';
+  document.getElementById('hodKomentarz').value = '';
+  document.getElementById('modalHod').classList.add('open');
+}
+function closeHodModal() {
+  document.getElementById('modalHod').classList.remove('open');
+}
+function submitHod() {
+  const rabat = parseFloat(document.getElementById('hodRabat').value);
+  const kom = document.getElementById('hodKomentarz').value.trim();
+  if(!rabat || rabat <= 0) { showToast('Podaj wartość dodatkowego rabatu'); return; }
+  if(!kom) { showToast('Wpisz uzasadnienie wniosku HoD'); return; }
+  const m = machines.find(x => x.id === hodTargetId);
+  m.hod_status = 'pending';
+  m.hod_rabat = rabat;
+  m.hod_komentarz = kom;
+  m.hod_data = new Date().toISOString().split('T')[0];
+  m.hod_odpowiedz = '';
+  closeHodModal();
+  renderTable();
+  renderPanel(m, activeTab);
+  showToast('Wniosek HoD wysłany – oczekuje na akceptację administracji', 'green');
+}
+function approveHod(id) {
+  const m = machines.find(x => x.id === id);
+  m.hod_status = 'approved';
+  m.hod_odpowiedz_data = new Date().toISOString().split('T')[0];
+  renderTable();
+  renderPanel(m, activeTab);
+  showToast('HoD zatwierdzony – RKS otrzyma powiadomienie', 'green');
+}
+function rejectHod(id) {
+  const m = machines.find(x => x.id === id);
+  m.hod_status = 'rejected';
+  m.hod_odpowiedz_data = new Date().toISOString().split('T')[0];
+  renderTable();
+  renderPanel(m, activeTab);
+  showToast('HoD odrzucony');
+}
+function renderHodSection(m, role) {
+  if(!m.hod_status) {
+    return `<div style="font-size:12px;color:var(--gray-500)">Brak aktywnego wniosku HoD.${role==='RKS' ? ' Użyj przycisku „Wnioskuj o HoD" poniżej.' : ''}</div>`;
+  }
+  const statusMap = {
+    pending:  { label:'Oczekuje na decyzję', color:'var(--purple)', bg:'#fff' },
+    approved: { label:'Zatwierdzony',        color:'var(--green)',  bg:'#f0fdf4' },
+    rejected: { label:'Odrzucony',           color:'var(--red)',    bg:'var(--red-pale)' },
+  };
+  const s = statusMap[m.hod_status];
+  return `
+    <div class="field-row">
+      <div class="field" style="background:${s.bg}">
+        <div class="field-label">Status</div>
+        <div class="field-value" style="color:${s.color};font-weight:700">${s.label}</div>
+      </div>
+      <div class="field" style="background:#fff">
+        <div class="field-label">Dodatkowy rabat</div>
+        <div class="field-value highlight">${m.hod_rabat ? m.hod_rabat + '%' : '—'}</div>
+      </div>
+      <div class="field" style="background:#fff">
+        <div class="field-label">Data wniosku</div>
+        <div class="field-value">${m.hod_data || '—'}</div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field full" style="background:#fff">
+        <div class="field-label">Uzasadnienie RKS</div>
+        <div class="field-value">${m.hod_komentarz || '—'}</div>
+      </div>
+    </div>
+    ${m.hod_odpowiedz_data ? `<div style="font-size:11px;color:var(--gray-500);margin-top:4px">Decyzja: ${m.hod_odpowiedz_data}</div>` : ''}
+  `;
 }
 
 function closeContract() {
