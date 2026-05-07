@@ -929,9 +929,9 @@
         <input class="form-input" id="f_cena" type="number" placeholder="0">
       </div>
       <div class="form-group">
-        <label class="form-label">Magazyn</label>
+        <label class="form-label">Oddział</label>
         <select class="form-input" id="f_magazyn">
-          <option>Bielsko-Biała</option><option>Kraków</option><option>Katowice</option><option>Rzeszów</option>
+          <option>Mogilany</option><option>Kajetanów</option><option>Wolbórz</option><option>Jarosław</option><option>Pułankowice</option><option>Smęgorzów</option><option>Wola Piasecka</option><option>Sitaniec</option><option>Janówek</option><option>Kutno</option><option>Bramki</option><option>Reńska Wieś</option><option>Miechów</option>
         </select>
       </div>
       <div class="form-group">
@@ -1125,7 +1125,7 @@ const seeFinancials = { AG:true, RKS:true, Pozostale:true, Handlowiec:false, Ser
 
 const colLabels = {
   status:'Status', dzial:'Dział', model:'Model', klient:'Klient', handlowiec:'Handlowiec',
-  magazyn:'Magazyn', nr_umowy:'Nr umowy', data_umowy:'Data umowy', cena:'Cena konfig.',
+  magazyn:'Oddział', nr_umowy:'Nr umowy', data_umowy:'Data umowy', cena:'Cena konfig.',
   rabat:'Rabat %', zakup:'Zakup', marza:'Marża', marzaP:'Marża %', finansowanie:'Finansowanie',
   data_realizacji:'Data realizacji', komentarz:'Komentarz', vin:'VIN', rejestracja:'Rejestracja', rok_prod:'Rok prod.',
   numer_zam:'Nr zamówienia', producent:'Producent', rodzaj:'Rodzaj maszyny', rks:'RKS',
@@ -1358,7 +1358,7 @@ function renderPanel(m, tab) {
           <div class="field"><div class="field-label">Rodzaj</div><div class="field-value">${m.rodzaj}</div></div>
           <div class="field"><div class="field-label">Rok prod.</div><div class="field-value">${m.rok_prod||'—'}</div></div>
           <div class="field"><div class="field-label">Demo</div><div class="field-value ${m.demo==='Tak'?'warning':''}">${m.demo}</div></div>
-          <div class="field"><div class="field-label">Magazyn</div><div class="field-value">${m.magazyn}</div></div>
+          <div class="field"><div class="field-label">Oddział</div><div class="field-value">${m.magazyn}</div></div>
           ${m.rejestracja?`<div class="field"><div class="field-label">Rejestracja</div><div class="field-value">${m.rejestracja}</div></div>`:''}
         </div>
       </div>
@@ -1994,7 +1994,7 @@ function generateContract(id) {
         <tr><td style="color:#555;padding:2px 8px 2px 0">Rodzaj:</td><td>${m.rodzaj}</td></tr>
         <tr><td style="color:#555;padding:2px 8px 2px 0">Rok produkcji:</td><td>${m.rok_prod||'—'}</td></tr>
         <tr><td style="color:#555;padding:2px 8px 2px 0">Nr seryjny (VIN):</td><td style="font-family:monospace">${m.vin}</td></tr>
-        <tr><td style="color:#555;padding:2px 8px 2px 0">Magazyn:</td><td>${m.magazyn}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Oddział:</td><td>${m.magazyn}</td></tr>
         ${m.demo==='Tak'?'<tr><td style="color:#555;padding:2px 8px 2px 0">Uwaga:</td><td><b>Maszyna demonstracyjna</b></td></tr>':''}
       </table>
     </div>
@@ -2077,7 +2077,7 @@ function generateProtocol(id) {
         <tr><td style="color:#555;padding:2px 8px 2px 0">Rodzaj:</td><td>${m.rodzaj}</td></tr>
         <tr><td style="color:#555;padding:2px 8px 2px 0">Rok produkcji:</td><td>${m.rok_prod||'—'}</td></tr>
         <tr><td style="color:#555;padding:2px 8px 2px 0">VIN:</td><td style="font-family:monospace">${m.vin}</td></tr>
-        <tr><td style="color:#555;padding:2px 8px 2px 0">Magazyn:</td><td>${m.magazyn||'—'}</td></tr>
+        <tr><td style="color:#555;padding:2px 8px 2px 0">Oddział:</td><td>${m.magazyn||'—'}</td></tr>
         <tr><td style="color:#555;padding:2px 8px 2px 0">Nr zamówienia:</td><td>${m.numer_zam||'—'}</td></tr>
         <tr><td style="color:#555;padding:2px 8px 2px 0">Data przydziału:</td><td>${m.data_przydzialu||'—'}</td></tr>
       </table>
@@ -2295,7 +2295,7 @@ function renderWiz() {
                   <span class="badge badge-dostepna">${m.rodzaj}</span>
                   <span class="chip">${m.dzial}</span>
                   <span style="font-size:11px;color:var(--gray-500)">Rok: ${m.rok_prod||'—'}</span>
-                  <span style="font-size:11px;color:var(--gray-500)">Magazyn: ${m.magazyn}</span>
+                  <span style="font-size:11px;color:var(--gray-500)">Oddział: ${m.magazyn}</span>
                   ${m.demo==='Tak'?`<span class="badge badge-rezerwacja">Demo</span>`:''}
                 </div>
                 <div style="font-size:10px;color:var(--gray-300);margin-top:4px;font-family:monospace">${m.vin}</div>
