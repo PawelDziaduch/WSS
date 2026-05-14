@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"c:\\\\Users\\\\PawełDziaduch\\\\OneDrive - Firma Wanicki Sp. z o. o\\\\Dokumenty\\\\Projekty\\\\Aplikacja administracyjna sprzedaży\\\\WSS\" ls-files)",
+      "WebFetch(domain:wanickicloud-my.sharepoint.com)"
+    ]
+  }
+}
