@@ -2746,7 +2746,7 @@ function toggleUserStatus(id) {
 // SPRZEDAŻ – TRYB (wizard / dokument)
 // ─────────────────────────────────────────────
 let sprzedazMode = 'wizard';
-let docFlow = { step:1, file:null, model:'', producent:'', rodzaj:'', matches:[], selectedMatchId:null, filterText:'', filterDzial:'', filterMagazyn:'', clientId:null, isNewClient:false, clientSearch:'', newClientData:{}, cenaOferta:null, uwagi:'', createdMachineId:null };
+let docFlow = { step:1, file:null, model:'', producent:'', rodzaj:'', matches:[], selectedMatchId:null, filterText:'', filterDzial:'', filterMagazyn:'', clientId:null, isNewClient:false, clientSearch:'', newClientData:{}, cenaOferta:null, uwagi:'', createdMachineId:null, crmLink:'', scanFile:null };
 
 function renderSprzedazModeBar() {
   const bar = document.getElementById('sprzedazModeBar');
@@ -3026,6 +3026,37 @@ function renderDocFlow() {
           <textarea class="form-input" rows="3"
             oninput="docFlow.uwagi=this.value" placeholder="np. wymagana konfiguracja, termin dostawy, uwagi do oferty...">${escapeHtml(docFlow.uwagi)}</textarea>
         </div>
+      </div>
+
+      <div style="border-top:2px solid var(--gray-200);margin-top:20px;padding-top:20px">
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:14px;color:var(--gray-700)">Dokumenty wymagane do złożenia zamówienia</h3>
+        <div style="border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:14px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:6px">1. Wygeneruj potwierdzenie zamówienia</div>
+          <p style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Wydrukuj, podpisz z klientem i zeskanuj podpisaną kopię.</p>
+          <button class="btn" style="justify-content:center;padding:10px 16px" onclick="printDocFlowOrder()">
+            🖨 Generuj zamówienie do podpisania
+          </button>
+        </div>
+        <div style="border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:14px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:6px">2. Link do wygranej szansy w CRM <span style="color:var(--red)">*</span></div>
+          <input type="url" class="form-input" value="${escapeHtml(docFlow.crmLink||'')}"
+            placeholder="https://crm.wanicki.pl/opportunity/..."
+            oninput="docFlow.crmLink=this.value" style="margin-bottom:0">
+        </div>
+        <div style="border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:4px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px">3. Skan podpisanego zamówienia <span style="color:var(--red)">*</span></div>
+          ${docFlow.scanFile ? `
+            <div style="display:flex;align-items:center;gap:8px;background:var(--green-pale);border:1px solid var(--green);border-radius:6px;padding:10px 12px;font-size:12px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span style="font-weight:600;color:var(--green);flex:1">${escapeHtml(docFlow.scanFile.name)}</span>
+              <button class="btn" style="font-size:11px;padding:3px 10px" onclick="docFlow.scanFile=null;renderDocFlow()">Usuń</button>
+            </div>` : `
+            <label class="doc-upload-zone" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px;cursor:pointer;border-radius:8px">
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="docZamScanSelected(this)">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span style="font-size:12px;color:var(--gray-500)">Kliknij lub przeciągnij plik (PDF, JPG, PNG)</span>
+            </label>`}
+        </div>
       </div>`;
     footer.innerHTML = `
       <button class="btn" onclick="docFlow.step=2;renderDocFlow()">← Wstecz</button>
@@ -3067,6 +3098,70 @@ function docFileSelected(input) {
 function docFileDrop(evt) {
   const f = evt.dataTransfer.files[0];
   if(f) { docFlow.file = { name: f.name, size: f.size }; renderDocFlow(); }
+}
+
+function docZamScanSelected(input) {
+  if(input.files && input.files[0]) {
+    docFlow.scanFile = { name: input.files[0].name, size: input.files[0].size };
+    renderDocFlow();
+  }
+}
+
+function printDocFlowOrder() {
+  const klientNazwa = docFlow.isNewClient
+    ? (docFlow.newClientData.nazwa||'—')
+    : (clients.find(c=>c.id===docFlow.clientId)||{}).nazwa||'—';
+  const klientNip = docFlow.isNewClient
+    ? (docFlow.newClientData.nip||'—')
+    : (clients.find(c=>c.id===docFlow.clientId)||{}).nip||'—';
+  const today = new Date().toLocaleDateString('pl-PL');
+  const nrZam = 'ZAM/' + new Date().getFullYear() + '/' + String(Math.floor(Math.random()*9000)+1000).padStart(4,'0');
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8">
+    <title>Zamówienie ${nrZam}</title>
+    <style>
+      body{font-family:Arial,sans-serif;font-size:11pt;color:#222;margin:0;padding:30px}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:16px;margin-bottom:20px}
+      h1{font-size:14pt;text-align:center;text-transform:uppercase;letter-spacing:1px;margin-bottom:24px}
+      table{width:100%;border-collapse:collapse;margin-bottom:8px}
+      td{padding:4px 8px}td:first-child{color:#555;width:180px}
+      .section-title{font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin:20px 0 8px}
+      .sign{display:flex;justify-content:space-between;margin-top:60px}
+      .sign-box{text-align:center;width:200px;border-top:1px solid #000;padding-top:6px;font-size:9pt;color:#555}
+      @media print{button{display:none}}
+    </style></head><body>
+    <div class="header">
+      <div>
+        <div style="font-size:18pt;font-weight:bold">Wanicki <span style="font-weight:300">AGRO</span></div>
+        <div style="font-size:9pt;color:#555;margin-top:4px">Wanicki Sp. z o. o. · ul. Przykładowa 1 · 43-300 Bielsko-Biała<br>NIP: 547-000-00-00 · tel. +48 33 000 00 00</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13pt;font-weight:bold">${nrZam}</div>
+        <div style="font-size:10pt;color:#555">Data: ${today}</div>
+      </div>
+    </div>
+    <h1>Potwierdzenie Zamówienia Maszyny</h1>
+    <div class="section-title">Klient / Zamawiający</div>
+    <table>
+      <tr><td>Firma/Osoba:</td><td><b>${klientNazwa}</b></td></tr>
+      <tr><td>NIP:</td><td>${klientNip}</td></tr>
+    </table>
+    <div class="section-title">Przedmiot zamówienia</div>
+    <table>
+      <tr><td>Producent/Model:</td><td><b>${docFlow.producent||''} ${docFlow.model||'—'}</b></td></tr>
+      <tr><td>Rodzaj maszyny:</td><td>${docFlow.rodzaj||'—'}</td></tr>
+      ${docFlow.cenaOferta?`<tr><td>Cena ofertowa:</td><td><b>${docFlow.cenaOferta.toLocaleString('pl-PL')} PLN</b></td></tr>`:''}
+      ${docFlow.uwagi?`<tr><td>Uwagi/specyfikacja:</td><td>${docFlow.uwagi}</td></tr>`:''}
+    </table>
+    <div class="sign">
+      <div class="sign-box">Handlowiec / Wanicki Sp. z o. o.</div>
+      <div class="sign-box">Klient / Zamawiający</div>
+    </div>
+    <div style="text-align:center;margin-top:30px">
+      <button onclick="window.print()" style="padding:10px 24px;font-size:12pt;cursor:pointer;background:#2d6a4f;color:#fff;border:none;border-radius:6px">🖨 Drukuj</button>
+    </div>
+    </body></html>`);
+  w.document.close();
 }
 
 function docFlowUpdateList() {
@@ -3163,6 +3258,9 @@ function docFlowSaveOrder() {
   // Walidacja klienta
   if(!docFlow.clientId && !docFlow.isNewClient) { showToast('Wybierz klienta z listy lub dodaj nowego'); return; }
   if(docFlow.isNewClient && !(docFlow.newClientData.nazwa||'').trim()) { showToast('Wpisz nazwę nowego klienta'); return; }
+  // Walidacja dokumentów
+  if(!docFlow.crmLink.trim()) { showToast('Wpisz link do wygranej szansy w CRM'); return; }
+  if(!docFlow.scanFile) { showToast('Załącz skan podpisanego zamówienia'); return; }
 
   // Dodaj nowego klienta do bazy jeśli trzeba
   let klientNazwa, klientNip;
@@ -3200,6 +3298,8 @@ function docFlowSaveOrder() {
     cena_oferta: docFlow.cenaOferta, komentarz: docFlow.uwagi,
     oferta_dokument: docFlow.file ? docFlow.file.name : null,
     oferta_data: new Date().toISOString().split('T')[0],
+    crm_link: docFlow.crmLink,
+    skan_umowy: docFlow.scanFile ? docFlow.scanFile.name : null,
     dzial:'AG', magazyn:'—', vin:'—',
     data_przy_zamowieniu: new Date().toISOString().split('T')[0],
     rok_prod:null, rejestracja:'', konfiguracja:[], demo:'Nie',
@@ -3214,17 +3314,18 @@ function docFlowSaveOrder() {
 }
 
 function docFlowReset() {
-  docFlow = { step:1, file:null, model:'', producent:'', rodzaj:'', matches:[], selectedMatchId:null, filterText:'', filterDzial:'', filterMagazyn:'', clientId:null, isNewClient:false, clientSearch:'', newClientData:{}, cenaOferta:null, uwagi:'', createdMachineId:null };
+  docFlow = { step:1, file:null, model:'', producent:'', rodzaj:'', matches:[], selectedMatchId:null, filterText:'', filterDzial:'', filterMagazyn:'', clientId:null, isNewClient:false, clientSearch:'', newClientData:{}, cenaOferta:null, uwagi:'', createdMachineId:null, crmLink:'', scanFile:null };
   renderDocFlow();
 }
 
-let wiz = { step:1, machineId:null, config:[], clientId:null, isNewClient:false, newClientData:{}, cenaOferta:null };
+let wiz = { step:1, machineId:null, config:[], clientId:null, isNewClient:false, newClientData:{}, cenaOferta:null, crmLink:'', scanFile:null };
 
 const wizSteps = [
   { n:1, label:'Maszyna' },
   { n:2, label:'Klient' },
   { n:3, label:'Wycena' },
-  { n:4, label:'Finalizacja' },
+  { n:4, label:'Dokumenty' },
+  { n:5, label:'Finalizacja' },
 ];
 
 function renderWizBar() {
@@ -3376,11 +3477,58 @@ function renderWiz() {
     footer.innerHTML = `
       <button class="btn" onclick="wizBack()">← Wstecz</button>
       <div class="wiz-footer-spacer"></div>
-      <button class="btn primary" onclick="wizStep3Next()">Generuj ofertę →</button>`;
+      <button class="btn primary" onclick="wizStep3Prepare()">Dalej: Dokumenty →</button>`;
   }
 
-  // ── Krok 4: Finalizacja ──
+  // ── Krok 4: Dokumenty ──
   else if(wiz.step === 4) {
+    const m = machines.find(x => x.id === wiz.machineId);
+    const klient = wiz.isNewClient ? wiz.newClientData.nazwa : (clients.find(c=>c.id===wiz.clientId)||{}).nazwa||'—';
+    const hasAll = wiz.crmLink.trim() && wiz.scanFile;
+    body.innerHTML = `
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:16px">Dokumenty do umowy</h2>
+      <div class="sum-box" style="margin-bottom:16px">
+        <div class="sum-box-title">Podsumowanie oferty</div>
+        <div class="sum-box-main">${m.model}</div>
+        <div class="sum-box-sub">${klient}${wiz.cenaOferta?' · '+wiz.cenaOferta.toLocaleString('pl-PL')+' PLN':''}</div>
+      </div>
+      <div style="border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px">1. Wygeneruj i wydrukuj umowę</div>
+        <p style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Wydrukuj, podpisz z klientem i zeskanuj podpisaną kopię.</p>
+        <button class="btn" style="justify-content:center;padding:10px 16px" onclick="generateContract(${m.id})">
+          🖨 Generuj umowę do podpisania
+        </button>
+      </div>
+      <div style="border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px">2. Link do wygranej szansy w CRM <span style="color:var(--red)">*</span></div>
+        <input type="url" class="form-input" id="wizCrmLink" value="${escapeHtml(wiz.crmLink||'')}"
+          placeholder="https://crm.wanicki.pl/opportunity/..."
+          oninput="wiz.crmLink=this.value;wizUpdateDocBtn()" style="margin-bottom:0">
+      </div>
+      <div style="border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">3. Skan podpisanej umowy <span style="color:var(--red)">*</span></div>
+        ${wiz.scanFile ? `
+          <div style="display:flex;align-items:center;gap:8px;background:var(--green-pale);border:1px solid var(--green);border-radius:6px;padding:10px 12px;font-size:12px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            <span style="font-weight:600;color:var(--green);flex:1">${escapeHtml(wiz.scanFile.name)}</span>
+            <button class="btn" style="font-size:11px;padding:3px 10px" onclick="wiz.scanFile=null;renderWiz()">Usuń</button>
+          </div>` : `
+          <label class="doc-upload-zone" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px;cursor:pointer;border-radius:8px">
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="wizScanSelected(this)">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span style="font-size:12px;color:var(--gray-500)">Kliknij lub przeciągnij plik (PDF, JPG, PNG)</span>
+          </label>`}
+      </div>`;
+    footer.innerHTML = `
+      <button class="btn" onclick="wizBack()">← Wstecz</button>
+      <div class="wiz-footer-spacer"></div>
+      <button id="wizDocSubmit" class="btn primary" ${hasAll?'':'disabled'} onclick="wizStep4Next()">
+        Zatwierdź i zarezerwuj →
+      </button>`;
+  }
+
+  // ── Krok 5: Finalizacja ──
+  else if(wiz.step === 5) {
     const m      = machines.find(x => x.id === wiz.machineId);
     const klient = wiz.isNewClient ? wiz.newClientData.nazwa : (clients.find(c=>c.id===wiz.clientId)||{}).nazwa||'—';
     const needsRKS = calcMargin(m) === null || calcMargin(m) < 6;
@@ -3448,7 +3596,7 @@ function wizStep2Next() {
   wizNext();
 }
 
-function wizStep3Next() {
+function wizStep3Prepare() {
   const m = machines.find(x => x.id === wiz.machineId);
   const klientNazwa = wiz.isNewClient ? wiz.newClientData.nazwa : (clients.find(c=>c.id===wiz.clientId)||{}).nazwa||'';
 
@@ -3464,7 +3612,7 @@ function wizStep3Next() {
     document.getElementById('navCountKlienci').textContent = clients.length;
   }
 
-  // Zapisz dane na maszynie
+  // Zapisz dane oferty na maszynie (bez zmiany statusu – status zmienimy po wgraniu dokumentów)
   const klient = clients.find(c=>c.id===wiz.clientId);
   m.klient      = klient ? klient.nazwa : klientNazwa;
   m.nip         = klient ? klient.nip   : (wiz.newClientData.nip||'');
@@ -3474,21 +3622,45 @@ function wizStep3Next() {
     if(m.cena) m.rabat = parseFloat(((1-wiz.cenaOferta/m.cena)*100).toFixed(1));
   }
 
-  const mg = calcMargin(m);
-  if(mg === null || mg < 6) {
-    m.status = 'Oferta';
-    showToast('Oferta wysłana do RKS', 'green');
-  } else { 
-    m.status = 'Rezerwacja';
-    showToast('Marża OK – maszyna zarezerwowana bez akceptacji RKS', 'green');
-  }
-  renderStepper(); renderStats(); renderTable();
   wiz.step = 4;
   renderWiz();
 }
 
+function wizStep4Next() {
+  if(!wiz.crmLink.trim()) { showToast('Wpisz link do wygranej szansy w CRM'); return; }
+  if(!wiz.scanFile) { showToast('Załącz skan podpisanej umowy'); return; }
+
+  const m = machines.find(x => x.id === wiz.machineId);
+  m.crm_link  = wiz.crmLink;
+  m.skan_umowy = wiz.scanFile.name;
+
+  const mg = calcMargin(m);
+  if(mg === null || mg < 6) {
+    m.status = 'Oferta';
+    showToast('Oferta wysłana do RKS', 'green');
+  } else {
+    m.status = 'Rezerwacja';
+    showToast('Marża OK – maszyna zarezerwowana', 'green');
+  }
+  renderStepper(); renderStats(); renderTable();
+  wiz.step = 5;
+  renderWiz();
+}
+
+function wizUpdateDocBtn() {
+  const btn = document.getElementById('wizDocSubmit');
+  if(btn) btn.disabled = !(wiz.crmLink.trim() && wiz.scanFile);
+}
+
+function wizScanSelected(input) {
+  if(input.files && input.files[0]) {
+    wiz.scanFile = { name: input.files[0].name, size: input.files[0].size };
+    renderWiz();
+  }
+}
+
 function resetWiz() {
-  wiz = { step:1, machineId:null, config:[], clientId:null, isNewClient:false, newClientData:{}, cenaOferta:null };
+  wiz = { step:1, machineId:null, config:[], clientId:null, isNewClient:false, newClientData:{}, cenaOferta:null, crmLink:'', scanFile:null };
   renderWiz();
 }
 
