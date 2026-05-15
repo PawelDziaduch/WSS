@@ -2746,7 +2746,7 @@ function toggleUserStatus(id) {
 // SPRZEDAŻ – TRYB (wizard / dokument)
 // ─────────────────────────────────────────────
 let sprzedazMode = 'wizard';
-let docFlow = { step:1, file:null, model:'', producent:'', rodzaj:'', matches:[], selectedMatchId:null, klientNazwa:'', klientNip:'', cenaOferta:null, uwagi:'', createdMachineId:null };
+let docFlow = { step:1, file:null, model:'', producent:'', rodzaj:'', matches:[], selectedMatchId:null, filterText:'', filterDzial:'', filterMagazyn:'', clientId:null, isNewClient:false, clientSearch:'', newClientData:{}, cenaOferta:null, uwagi:'', createdMachineId:null };
 
 function renderSprzedazModeBar() {
   const bar = document.getElementById('sprzedazModeBar');
@@ -2842,51 +2842,105 @@ function renderDocFlow() {
   }
 
   else if(docFlow.step === 2) {
-    const matches = docFlow.matches;
+    // Wszystkie dostępne maszyny
+    const allAvail = machines.filter(m => m.status === 'Dostępna');
+    // Unikalne wartości do dropdownów
+    const dzialy   = [...new Set(allAvail.map(m=>m.dzial).filter(Boolean))].sort();
+    const magazyny = [...new Set(allAvail.map(m=>m.magazyn).filter(Boolean))].sort();
+    // Filtrowanie
+    const ft = (docFlow.filterText||'').toLowerCase();
+    const filtered = allAvail.filter(m => {
+      if(docFlow.filterDzial   && m.dzial   !== docFlow.filterDzial)   return false;
+      if(docFlow.filterMagazyn && m.magazyn !== docFlow.filterMagazyn) return false;
+      if(ft) {
+        const hay = [m.model,m.producent,m.vin,m.rodzaj].join(' ').toLowerCase();
+        if(!hay.includes(ft)) return false;
+      }
+      return true;
+    });
+
     body.innerHTML = `
-      <h2 style="font-size:15px;font-weight:700;margin-bottom:4px">Wyniki wyszukiwania</h2>
-      <p style="font-size:12px;color:var(--gray-500);margin-bottom:16px">
-        Szukano: <strong>${escapeHtml(docFlow.producent)} ${escapeHtml(docFlow.model)}</strong>${docFlow.rodzaj?' · <em>'+escapeHtml(docFlow.rodzaj)+'</em>':''}
-        ${docFlow.file?` · oferta: <strong>${escapeHtml(docFlow.file.name)}</strong>`:''}
-      </p>
-      ${matches.length ? `
-        <div style="background:var(--green-pale);border:1px solid var(--green);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--green);font-weight:600">
-          ✓ Znaleziono ${matches.length} maszynę/maszyny na stanie – wybierz i kontynuuj sprzedaż
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div>
+          <h2 style="font-size:15px;font-weight:700;margin-bottom:2px">Dostępne maszyny na stanie</h2>
+          <p style="font-size:12px;color:var(--gray-500)">
+            ${allAvail.length} szt. dostępnych${docFlow.file?` · oferta: <strong>${escapeHtml(docFlow.file.name)}</strong>`:''}
+          </p>
         </div>
-        ${matches.map(m => `
+        <span style="font-size:12px;color:var(--gray-500)">Pokazano: <strong>${filtered.length}</strong></span>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="search-box" style="flex:1;min-width:180px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Szukaj: model, producent, VIN..."
+            value="${escapeHtml(docFlow.filterText)}"
+            oninput="docFlow.filterText=this.value;renderDocFlow()">
+        </div>
+        <select class="filter-select" onchange="docFlow.filterDzial=this.value;renderDocFlow()">
+          <option value="">Wszystkie działy</option>
+          ${dzialy.map(d=>`<option value="${escapeHtml(d)}" ${docFlow.filterDzial===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}
+        </select>
+        <select class="filter-select" onchange="docFlow.filterMagazyn=this.value;renderDocFlow()">
+          <option value="">Wszystkie oddziały</option>
+          ${magazyny.map(d=>`<option value="${escapeHtml(d)}" ${docFlow.filterMagazyn===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}
+        </select>
+        ${(docFlow.filterText||docFlow.filterDzial||docFlow.filterMagazyn)?`
+          <button class="btn" style="font-size:11px;white-space:nowrap" onclick="docFlow.filterText='';docFlow.filterDzial='';docFlow.filterMagazyn='';renderDocFlow()">
+            Wyczyść filtry ✕
+          </button>`:''}
+      </div>
+
+      ${filtered.length ? `
+        ${docFlow.selectedMatchId?`
+          <div style="background:var(--green-pale);border:1px solid var(--green);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--green);font-weight:600">
+            ✓ Wybrano: ${escapeHtml((machines.find(x=>x.id===docFlow.selectedMatchId)||{}).model||'—')}
+          </div>`:''}
+        ${filtered.map(m => `
           <div class="doc-match-card ${docFlow.selectedMatchId===m.id?'selected':''}" onclick="docFlowSelectMatch(${m.id})">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between">
-              <div>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+              <div style="flex:1;min-width:0">
                 <div style="font-weight:700;font-size:14px">${escapeHtml(m.model)}</div>
-                <div style="font-size:11px;color:var(--gray-500);margin-top:3px">
-                  ${escapeHtml(m.producent||'—')} · ${escapeHtml(m.rodzaj||'—')} · Rok: ${m.rok_prod||'—'} · Oddział: ${escapeHtml(m.magazyn||'—')}
+                <div style="font-size:11px;color:var(--gray-500);margin-top:3px;display:flex;flex-wrap:wrap;gap:6px">
+                  <span>${escapeHtml(m.producent||'—')}</span>
+                  <span class="chip" style="font-size:10px">${escapeHtml(m.rodzaj||'—')}</span>
+                  <span class="chip" style="font-size:10px">${escapeHtml(m.dzial||'—')}</span>
+                  <span>Rok: ${m.rok_prod||'—'}</span>
+                  <span>Oddział: ${escapeHtml(m.magazyn||'—')}</span>
+                  ${m.demo==='Tak'?`<span class="badge badge-rezerwacja" style="font-size:10px">Demo</span>`:''}
                 </div>
-                <div style="font-size:10px;color:var(--gray-300);font-family:monospace;margin-top:2px">${escapeHtml(m.vin||'—')}</div>
+                <div style="font-size:10px;color:var(--gray-300);font-family:monospace;margin-top:3px">${escapeHtml(m.vin||'—')}</div>
               </div>
-              ${docFlow.selectedMatchId===m.id?`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`:''}
+              ${docFlow.selectedMatchId===m.id?`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>`:''}
             </div>
           </div>`).join('')}
-        <div style="text-align:center;margin-top:12px">
-          <button class="btn" style="font-size:11px" onclick="docFlow.step=3;docFlow.selectedMatchId=null;renderDocFlow()">
-            Maszyna nie pasuje – utwórz zamówienie
+        <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-200)">
+          <span style="font-size:12px;color:var(--gray-500)">Nie znalazłeś odpowiedniej maszyny?</span>
+          <button class="btn" style="font-size:12px;margin-left:8px" onclick="docFlow.step=3;docFlow.selectedMatchId=null;renderDocFlow()">
+            Utwórz zamówienie dla AG
           </button>
         </div>
       ` : `
         <div style="background:var(--red-pale);border:1px solid var(--red);border-radius:8px;padding:16px;margin-bottom:16px">
-          <div style="font-weight:700;color:var(--red);margin-bottom:4px">Brak dostępnej maszyny na stanie</div>
-          <div style="font-size:12px;color:var(--gray-700)">Nie znaleziono maszyny <strong>${escapeHtml(docFlow.producent)} ${escapeHtml(docFlow.model)}</strong> ze statusem „Dostępna". Możesz złożyć zapotrzebowanie do działu administracji handlowej.</div>
+          <div style="font-weight:700;color:var(--red);margin-bottom:4px">Brak maszyn spełniających kryteria</div>
+          <div style="font-size:12px;color:var(--gray-700)">
+            ${allAvail.length===0?'Brak jakichkolwiek dostępnych maszyn na stanie.':'Zmień filtry lub utwórz zamówienie.'}
+          </div>
         </div>
         <button class="btn primary" style="width:100%;justify-content:center;padding:12px" onclick="docFlow.step=3;renderDocFlow()">
-          Utwórz zapotrzebowanie dla AG →
+          Utwórz zamówienie dla AG →
         </button>
       `}`;
     footer.innerHTML = `
       <button class="btn" onclick="docFlow.step=1;renderDocFlow()">← Wstecz</button>
       <div class="wiz-footer-spacer"></div>
-      ${matches.length && docFlow.selectedMatchId ? `<button class="btn primary" onclick="docFlowContinueWithMachine()">Kontynuuj sprzedaż →</button>` : ''}`;
+      ${docFlow.selectedMatchId ? `<button class="btn primary" onclick="docFlowContinueWithMachine()">Kontynuuj sprzedaż →</button>` : ''}`;
   }
 
   else if(docFlow.step === 3) {
+    const q = docFlow.clientSearch;
+    const filtered = clients.filter(c => !q || [c.nazwa,c.nip,c.miejscowosc].join(' ').toLowerCase().includes(q.toLowerCase()));
+    const selClient = docFlow.clientId && !docFlow.isNewClient ? clients.find(c=>c.id===docFlow.clientId) : null;
     body.innerHTML = `
       <h2 style="font-size:15px;font-weight:700;margin-bottom:4px">Zapotrzebowanie na maszynę</h2>
       <p style="font-size:12px;color:var(--gray-500);margin-bottom:16px">
@@ -2897,20 +2951,72 @@ function renderDocFlow() {
         ${docFlow.file?`<br><strong>Oferta:</strong> ${escapeHtml(docFlow.file.name)}`:''}
         <br><span style="color:var(--gray-500);font-size:11px">Docelowo plik zostanie automatycznie wysłany do SharePoint przez Power Automate.</span>
       </div>
+
+      <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--gray-700)">Klient *</h3>
+      <div class="search-box" style="margin-bottom:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="docClientSearch" type="text" placeholder="Szukaj klienta po nazwie, NIP, miejscowości..."
+          value="${escapeHtml(q)}" oninput="docFlow.clientSearch=this.value;renderDocFlow()">
+      </div>
+      <div style="max-height:180px;overflow-y:auto;margin-bottom:12px;border:1px solid var(--gray-200);border-radius:8px;background:#fff">
+        ${filtered.length ? filtered.map(c => `
+          <div class="clist-item ${docFlow.clientId===c.id&&!docFlow.isNewClient?'selected':''}"
+               onclick="docFlow.clientId=${c.id};docFlow.isNewClient=false;renderDocFlow()">
+            <div style="font-weight:600;font-size:13px">${escapeHtml(c.nazwa)}</div>
+            <div style="font-size:11px;color:var(--gray-500)">${escapeHtml(c.nip||'—')} · ${escapeHtml(c.miejscowosc||'—')}</div>
+          </div>`).join('')
+        : `<div style="padding:16px;text-align:center;font-size:12px;color:var(--gray-500)">Brak klientów spełniających kryteria</div>`}
+      </div>
+
+      <details style="border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:16px" ${docFlow.isNewClient?'open':''}>
+        <summary style="font-weight:600;font-size:13px;cursor:pointer;color:var(--green)"
+          onclick="docFlow.isNewClient=!docFlow.isNewClient;if(docFlow.isNewClient)docFlow.clientId=null;">
+          + Dodaj nowego klienta
+        </summary>
+        <div class="form-grid" style="margin-top:14px">
+          <div class="form-group full">
+            <label class="form-label">Nazwa klienta / firmy *</label>
+            <input class="form-input" value="${escapeHtml(docFlow.newClientData.nazwa||'')}"
+              oninput="docFlow.newClientData.nazwa=this.value" placeholder="np. Rolnicze Południe Sp. z o.o.">
+          </div>
+          <div class="form-group">
+            <label class="form-label">NIP</label>
+            <input class="form-input" value="${escapeHtml(docFlow.newClientData.nip||'')}"
+              oninput="docFlow.newClientData.nip=this.value" placeholder="000-000-00-00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Miejscowość</label>
+            <input class="form-input" value="${escapeHtml(docFlow.newClientData.miejscowosc||'')}"
+              oninput="docFlow.newClientData.miejscowosc=this.value" placeholder="np. Kraków">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telefon</label>
+            <input class="form-input" value="${escapeHtml(docFlow.newClientData.tel||'')}"
+              oninput="docFlow.newClientData.tel=this.value" placeholder="600-000-000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">E-mail</label>
+            <input class="form-input" value="${escapeHtml(docFlow.newClientData.email||'')}"
+              oninput="docFlow.newClientData.email=this.value" placeholder="kontakt@firma.pl">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Adres</label>
+            <input class="form-input" value="${escapeHtml(docFlow.newClientData.adres||'')}"
+              oninput="docFlow.newClientData.adres=this.value" placeholder="ul. Przykładowa 1, 00-000 Miasto">
+          </div>
+        </div>
+      </details>
+
+      ${selClient||docFlow.isNewClient?`
+        <div style="background:var(--green-pale);border:1px solid var(--green);border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:16px">
+          ✓ Klient: <strong>${escapeHtml(docFlow.isNewClient?(docFlow.newClientData.nazwa||'Nowy klient'):selClient.nazwa)}</strong>
+          ${docFlow.isNewClient?`<span style="margin-left:6px;color:var(--orange);font-weight:600">(zostanie dodany do bazy)</span>`:''}
+        </div>`:''}
+
       <div class="form-grid">
-        <div class="form-group full">
-          <label class="form-label">Klient *</label>
-          <input class="form-input" id="docZamKlient" value="${escapeHtml(docFlow.klientNazwa)}"
-            oninput="docFlow.klientNazwa=this.value" placeholder="Nazwa klienta lub firmy">
-        </div>
-        <div class="form-group">
-          <label class="form-label">NIP klienta</label>
-          <input class="form-input" id="docZamNip" value="${escapeHtml(docFlow.klientNip)}"
-            oninput="docFlow.klientNip=this.value" placeholder="000-000-00-00">
-        </div>
         <div class="form-group">
           <label class="form-label">Cena ofertowa (PLN)</label>
-          <input type="number" class="form-input" id="docZamCena" value="${docFlow.cenaOferta||''}"
+          <input type="number" class="form-input" value="${docFlow.cenaOferta||''}"
             oninput="docFlow.cenaOferta=parseFloat(this.value)||null" placeholder="Cena z oferty klienta" min="0" step="1000">
         </div>
         <div class="form-group full">
@@ -2962,23 +3068,12 @@ function docFileDrop(evt) {
 }
 
 function docFlowSearch() {
-  const model = docFlow.model.trim();
-  const producent = docFlow.producent.trim();
-  if(!model && !producent) { showToast('Wpisz przynajmniej model lub producenta'); return; }
-  docFlow.model = model;
-  docFlow.producent = producent;
-  const mL = model.toLowerCase();
-  const pL = producent.toLowerCase();
-  const rz = docFlow.rodzaj;
-  docFlow.matches = machines.filter(m => {
-    if(m.status !== 'Dostępna') return false;
-    const mm = (m.model||'').toLowerCase();
-    const mp = (m.producent||'').toLowerCase();
-    const modelOk   = !mL || mm.includes(mL) || mL.split(' ').filter(w=>w.length>2).some(w=>mm.includes(w));
-    const prodOk    = !pL || mp.includes(pL) || pL.includes(mp);
-    const rodzajOk  = !rz  || m.rodzaj === rz;
-    return (modelOk || prodOk) && rodzajOk;
-  });
+  docFlow.model    = docFlow.model.trim();
+  docFlow.producent = docFlow.producent.trim();
+  // Pre-ustaw filtr tekstowy na podstawie danych z kroku 1
+  docFlow.filterText = [docFlow.producent, docFlow.model].filter(Boolean).join(' ');
+  docFlow.filterDzial   = '';
+  docFlow.filterMagazyn = '';
   docFlow.step = 2;
   renderDocFlow();
 }
@@ -3002,12 +3097,42 @@ function docFlowContinueWithMachine() {
 }
 
 function docFlowSaveOrder() {
-  if(!(docFlow.klientNazwa||'').trim()) { showToast('Wpisz nazwę klienta'); return; }
+  // Walidacja klienta
+  if(!docFlow.clientId && !docFlow.isNewClient) { showToast('Wybierz klienta z listy lub dodaj nowego'); return; }
+  if(docFlow.isNewClient && !(docFlow.newClientData.nazwa||'').trim()) { showToast('Wpisz nazwę nowego klienta'); return; }
+
+  // Dodaj nowego klienta do bazy jeśli trzeba
+  let klientNazwa, klientNip;
+  if(docFlow.isNewClient) {
+    const newC = {
+      id: clients.length + 1,
+      nazwa: docFlow.newClientData.nazwa,
+      nip: docFlow.newClientData.nip || '',
+      miejscowosc: docFlow.newClientData.miejscowosc || '',
+      tel: docFlow.newClientData.tel || '',
+      email: docFlow.newClientData.email || '',
+      adres: docFlow.newClientData.adres || '',
+      handlowiec: '', dzial: 'AG', liczba_umow: 0,
+      ostatnia_aktywnosc: new Date().toISOString().split('T')[0],
+    };
+    clients.push(newC);
+    docFlow.clientId = newC.id;
+    docFlow.isNewClient = false;
+    renderClients();
+    document.getElementById('navCountKlienci').textContent = clients.length;
+    klientNazwa = newC.nazwa;
+    klientNip   = newC.nip;
+  } else {
+    const c = clients.find(x => x.id === docFlow.clientId);
+    klientNazwa = c ? c.nazwa : '';
+    klientNip   = c ? c.nip   : '';
+  }
+
   const newId = Math.max(...machines.map(m=>m.id), 0) + 1;
   machines.push({
     id: newId, model: docFlow.model||'—', producent: docFlow.producent||'—',
     rodzaj: docFlow.rodzaj||'Inne', status: 'Do zamówienia',
-    klient: docFlow.klientNazwa, nip: docFlow.klientNip,
+    klient: klientNazwa, nip: klientNip,
     handlowiec: currentRole === 'Handlowiec' ? 'Handlowiec' : '',
     cena_oferta: docFlow.cenaOferta, komentarz: docFlow.uwagi,
     oferta_dokument: docFlow.file ? docFlow.file.name : null,
@@ -3026,7 +3151,7 @@ function docFlowSaveOrder() {
 }
 
 function docFlowReset() {
-  docFlow = { step:1, file:null, model:'', producent:'', rodzaj:'', matches:[], selectedMatchId:null, klientNazwa:'', klientNip:'', cenaOferta:null, uwagi:'', createdMachineId:null };
+  docFlow = { step:1, file:null, model:'', producent:'', rodzaj:'', matches:[], selectedMatchId:null, filterText:'', filterDzial:'', filterMagazyn:'', clientId:null, isNewClient:false, clientSearch:'', newClientData:{}, cenaOferta:null, uwagi:'', createdMachineId:null };
   renderDocFlow();
 }
 
