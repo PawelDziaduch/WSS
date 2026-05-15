@@ -508,7 +508,39 @@
   .badge-doc-protokol { background: var(--purple-pale); color: var(--purple); }
   .badge-doc-cmr      { background: var(--teal-pale);   color: var(--teal); }
   .badge-doc-inne     { background: var(--gray-100);    color: var(--gray-500); }
-  .badge-oferta       { background: #fef3c7;            color: #92400e; }
+  .badge-oferta         { background: #fef3c7;            color: #92400e; }
+  .badge-do-zamowienia  { background: var(--purple-pale); color: var(--purple); }
+
+  /* ─── SPRZEDAŻ MODE BAR ─── */
+  .sprzedaz-mode-bar {
+    display: flex; gap: 0; border-bottom: 2px solid var(--gray-200);
+    background: #fff; padding: 0 28px; flex-shrink: 0;
+  }
+  .sprzedaz-mode-btn {
+    padding: 12px 20px; font-size: 13px; font-weight: 600;
+    border: none; background: none; cursor: pointer; color: var(--gray-500);
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+    transition: all 0.15s;
+  }
+  .sprzedaz-mode-btn:hover { color: var(--green); }
+  .sprzedaz-mode-btn.active { color: var(--green); border-bottom-color: var(--green); }
+
+  /* ─── DOC FLOW ─── */
+  .doc-upload-zone {
+    border: 2px dashed var(--gray-300); border-radius: 10px;
+    padding: 36px 24px; text-align: center; cursor: pointer;
+    transition: all 0.15s; background: var(--gray-100); user-select: none;
+  }
+  .doc-upload-zone:hover, .doc-upload-zone.dragover {
+    border-color: var(--green); background: var(--green-pale);
+  }
+  .doc-upload-zone.has-file { border-color: var(--green); background: var(--green-pale); border-style: solid; }
+  .doc-match-card {
+    border: 2px solid var(--gray-200); border-radius: 8px; padding: 14px;
+    margin-bottom: 10px; cursor: pointer; transition: all 0.15s; background: #fff;
+  }
+  .doc-match-card:hover    { border-color: var(--green-light); background: var(--green-pale); }
+  .doc-match-card.selected { border-color: var(--green); background: var(--green-pale); }
 
   /* ─── WIZARD SPRZEDAŻ ─── */
   .wiz-bar {
@@ -713,6 +745,7 @@
       </div>
       <select class="filter-select" id="statusFilter" onchange="renderTable()">
         <option value="">Wszystkie statusy</option>
+        <option value="Do zamówienia">Do zamówienia (zapotrzebowanie)</option>
         <option value="Dostępna">Dostępna</option>
         <option value="Oferta">Oferta (oczekuje na RKS)</option>
         <option value="Rezerwacja">Rezerwacja</option>
@@ -843,6 +876,7 @@
 
 <!-- SPRZEDAŻ VIEW (wizard) -->
 <div id="view-sprzedaz" class="view">
+  <div id="sprzedazModeBar" class="sprzedaz-mode-bar"></div>
   <div id="wizBar" class="wiz-bar"></div>
   <div id="wizBody" class="wiz-body"></div>
   <div id="wizFooter" class="wiz-footer"></div>
@@ -1361,7 +1395,8 @@ let activeStep = null;
 function statusClass(s) {
   const m = { 'Dostępna':'dostepna','Oferta':'oferta','Rezerwacja':'rezerwacja','Umowa':'umowa',
     'Umowa - zadatek':'zadatek','Umowa - zamówione':'zamowione',
-    'Umowa - Dostarczone':'dostarczone','Umowa - Zafakturowane':'zafakturowane','Umowa - wydane':'wydane' };
+    'Umowa - Dostarczone':'dostarczone','Umowa - Zafakturowane':'zafakturowane','Umowa - wydane':'wydane',
+    'Do zamówienia':'do-zamowienia' };
   return 'badge badge-'+(m[s]||'dostepna');
 }
 
@@ -1377,8 +1412,9 @@ function formatDate(value) {
 // STEPPER
 // ─────────────────────────────────────────────
 const processSteps = [
-  { label:'Dostępna',     key:'Dostępna' },
-  { label:'Oferta',       key:'Oferta' },
+  { label:'Do zamówienia', key:'Do zamówienia' },
+  { label:'Dostępna',      key:'Dostępna' },
+  { label:'Oferta',        key:'Oferta' },
   { label:'Rezerwacja',   key:'Rezerwacja' },
   { label:'Umowa',        key:'Umowa' },
   { label:'Zadatek',      key:'Umowa - zadatek' },
@@ -2706,6 +2742,294 @@ function toggleUserStatus(id) {
 // ─────────────────────────────────────────────
 // WIZARD SPRZEDAŻ
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// SPRZEDAŻ – TRYB (wizard / dokument)
+// ─────────────────────────────────────────────
+let sprzedazMode = 'wizard';
+let docFlow = { step:1, file:null, model:'', producent:'', rodzaj:'', matches:[], selectedMatchId:null, klientNazwa:'', klientNip:'', cenaOferta:null, uwagi:'', createdMachineId:null };
+
+function renderSprzedazModeBar() {
+  const bar = document.getElementById('sprzedazModeBar');
+  if(!bar) return;
+  bar.innerHTML = `
+    <button class="sprzedaz-mode-btn ${sprzedazMode==='wizard'?'active':''}" onclick="switchSprzedazMode('wizard')">
+      Sprzedaj ze stanu
+    </button>
+    <button class="sprzedaz-mode-btn ${sprzedazMode==='dokument'?'active':''}" onclick="switchSprzedazMode('dokument')">
+      Sprawdź z oferty (upload dokumentu)
+    </button>`;
+}
+
+function switchSprzedazMode(mode) {
+  sprzedazMode = mode;
+  renderSprzedazModeBar();
+  if(mode === 'wizard') renderWiz();
+  else renderDocFlow();
+}
+
+// ─────────────────────────────────────────────
+// DOC FLOW – upload oferty i wyszukiwanie maszyny
+// ─────────────────────────────────────────────
+function renderDocFlow() {
+  renderSprzedazModeBar();
+  const bar    = document.getElementById('wizBar');
+  const body   = document.getElementById('wizBody');
+  const footer = document.getElementById('wizFooter');
+
+  const docSteps = [{ n:1, label:'Dokument' }, { n:2, label:'Wyniki' }, { n:3, label:'Akcja' }];
+  bar.innerHTML = docSteps.map((s,i) => {
+    const cls = s.n < docFlow.step ? 'done' : s.n === docFlow.step ? 'active' : '';
+    const num = s.n < docFlow.step ? '✓' : s.n;
+    const arrow = i < docSteps.length-1 ? `<div class="wiz-arrow">›</div>` : '';
+    return `<div class="wiz-step ${cls}"><div class="wiz-num">${num}</div><span>${s.label}</span></div>${arrow}`;
+  }).join('');
+
+  if(docFlow.step === 1) {
+    const fileHtml = docFlow.file
+      ? `<div class="doc-upload-zone has-file" onclick="document.getElementById('docFileInput').click()">
+           <div style="font-size:28px;margin-bottom:8px">📄</div>
+           <div style="font-weight:700;color:var(--green);font-size:14px">${escapeHtml(docFlow.file.name)}</div>
+           <div style="font-size:11px;color:var(--gray-500);margin-top:4px">${(docFlow.file.size/1024).toFixed(0)} KB · Kliknij aby zmienić</div>
+         </div>`
+      : `<div class="doc-upload-zone"
+              onclick="document.getElementById('docFileInput').click()"
+              ondragover="event.preventDefault();this.classList.add('dragover')"
+              ondragleave="this.classList.remove('dragover')"
+              ondrop="event.preventDefault();this.classList.remove('dragover');docFileDrop(event)">
+           <div style="font-size:36px;margin-bottom:10px">📁</div>
+           <div style="font-weight:600;font-size:14px;margin-bottom:4px">Wgraj ofertę klienta</div>
+           <div style="font-size:12px;color:var(--gray-500)">PDF lub Word (.pdf, .doc, .docx)</div>
+           <div style="font-size:11px;color:var(--gray-300);margin-top:6px">Kliknij lub przeciągnij plik</div>
+         </div>`;
+    body.innerHTML = `
+      <input type="file" id="docFileInput" accept=".pdf,.doc,.docx" style="display:none" onchange="docFileSelected(this)">
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:4px">Wgraj ofertę i opisz maszynę</h2>
+      <p style="font-size:12px;color:var(--gray-500);margin-bottom:16px">
+        Wgraj dokument oferty przygotowanej dla klienta, a następnie uzupełnij dane maszyny – system sprawdzi dostępność na stanie.
+        <br><span style="color:var(--orange);font-weight:600">Docelowo Power Automate (SharePoint) wypełni te pola automatycznie po wgraniu pliku.</span>
+      </p>
+      ${fileHtml}
+      <div style="margin-top:22px">
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--gray-700)">Dane maszyny z oferty</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Producent *</label>
+            <input class="form-input" id="docProducent" value="${escapeHtml(docFlow.producent)}"
+              oninput="docFlow.producent=this.value" placeholder="np. John Deere">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Model / Seria *</label>
+            <input class="form-input" id="docModel" value="${escapeHtml(docFlow.model)}"
+              oninput="docFlow.model=this.value" placeholder="np. 6R 150">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Typ maszyny</label>
+            <select class="form-input" onchange="docFlow.rodzaj=this.value">
+              <option value="">— dowolny —</option>
+              <option value="Ciągnik"   ${docFlow.rodzaj==='Ciągnik'?'selected':''}>Ciągnik</option>
+              <option value="Kombajn"   ${docFlow.rodzaj==='Kombajn'?'selected':''}>Kombajn</option>
+              <option value="Ładowacz"  ${docFlow.rodzaj==='Ładowacz'?'selected':''}>Ładowacz</option>
+              <option value="Przyczepa" ${docFlow.rodzaj==='Przyczepa'?'selected':''}>Przyczepa</option>
+              <option value="Inne"      ${docFlow.rodzaj==='Inne'?'selected':''}>Inne</option>
+            </select>
+          </div>
+        </div>
+      </div>`;
+    footer.innerHTML = `
+      <button class="btn" onclick="switchSprzedazMode('wizard')">← Powrót</button>
+      <div class="wiz-footer-spacer"></div>
+      <button class="btn primary" onclick="docFlowSearch()">Szukaj na stanie →</button>`;
+  }
+
+  else if(docFlow.step === 2) {
+    const matches = docFlow.matches;
+    body.innerHTML = `
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:4px">Wyniki wyszukiwania</h2>
+      <p style="font-size:12px;color:var(--gray-500);margin-bottom:16px">
+        Szukano: <strong>${escapeHtml(docFlow.producent)} ${escapeHtml(docFlow.model)}</strong>${docFlow.rodzaj?' · <em>'+escapeHtml(docFlow.rodzaj)+'</em>':''}
+        ${docFlow.file?` · oferta: <strong>${escapeHtml(docFlow.file.name)}</strong>`:''}
+      </p>
+      ${matches.length ? `
+        <div style="background:var(--green-pale);border:1px solid var(--green);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--green);font-weight:600">
+          ✓ Znaleziono ${matches.length} maszynę/maszyny na stanie – wybierz i kontynuuj sprzedaż
+        </div>
+        ${matches.map(m => `
+          <div class="doc-match-card ${docFlow.selectedMatchId===m.id?'selected':''}" onclick="docFlowSelectMatch(${m.id})">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between">
+              <div>
+                <div style="font-weight:700;font-size:14px">${escapeHtml(m.model)}</div>
+                <div style="font-size:11px;color:var(--gray-500);margin-top:3px">
+                  ${escapeHtml(m.producent||'—')} · ${escapeHtml(m.rodzaj||'—')} · Rok: ${m.rok_prod||'—'} · Oddział: ${escapeHtml(m.magazyn||'—')}
+                </div>
+                <div style="font-size:10px;color:var(--gray-300);font-family:monospace;margin-top:2px">${escapeHtml(m.vin||'—')}</div>
+              </div>
+              ${docFlow.selectedMatchId===m.id?`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`:''}
+            </div>
+          </div>`).join('')}
+        <div style="text-align:center;margin-top:12px">
+          <button class="btn" style="font-size:11px" onclick="docFlow.step=3;docFlow.selectedMatchId=null;renderDocFlow()">
+            Maszyna nie pasuje – utwórz zamówienie
+          </button>
+        </div>
+      ` : `
+        <div style="background:var(--red-pale);border:1px solid var(--red);border-radius:8px;padding:16px;margin-bottom:16px">
+          <div style="font-weight:700;color:var(--red);margin-bottom:4px">Brak dostępnej maszyny na stanie</div>
+          <div style="font-size:12px;color:var(--gray-700)">Nie znaleziono maszyny <strong>${escapeHtml(docFlow.producent)} ${escapeHtml(docFlow.model)}</strong> ze statusem „Dostępna". Możesz złożyć zapotrzebowanie do działu administracji handlowej.</div>
+        </div>
+        <button class="btn primary" style="width:100%;justify-content:center;padding:12px" onclick="docFlow.step=3;renderDocFlow()">
+          Utwórz zapotrzebowanie dla AG →
+        </button>
+      `}`;
+    footer.innerHTML = `
+      <button class="btn" onclick="docFlow.step=1;renderDocFlow()">← Wstecz</button>
+      <div class="wiz-footer-spacer"></div>
+      ${matches.length && docFlow.selectedMatchId ? `<button class="btn primary" onclick="docFlowContinueWithMachine()">Kontynuuj sprzedaż →</button>` : ''}`;
+  }
+
+  else if(docFlow.step === 3) {
+    body.innerHTML = `
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:4px">Zapotrzebowanie na maszynę</h2>
+      <p style="font-size:12px;color:var(--gray-500);margin-bottom:16px">
+        Zgłoszenie trafi do działu administracji handlowej (AG), który zamówi maszynę u dostawcy.
+      </p>
+      <div style="background:var(--orange-pale);border:1px solid var(--orange);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px">
+        <strong>Maszyna:</strong> ${escapeHtml(docFlow.producent)} ${escapeHtml(docFlow.model)}${docFlow.rodzaj?' · '+escapeHtml(docFlow.rodzaj):''}
+        ${docFlow.file?`<br><strong>Oferta:</strong> ${escapeHtml(docFlow.file.name)}`:''}
+        <br><span style="color:var(--gray-500);font-size:11px">Docelowo plik zostanie automatycznie wysłany do SharePoint przez Power Automate.</span>
+      </div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Klient *</label>
+          <input class="form-input" id="docZamKlient" value="${escapeHtml(docFlow.klientNazwa)}"
+            oninput="docFlow.klientNazwa=this.value" placeholder="Nazwa klienta lub firmy">
+        </div>
+        <div class="form-group">
+          <label class="form-label">NIP klienta</label>
+          <input class="form-input" id="docZamNip" value="${escapeHtml(docFlow.klientNip)}"
+            oninput="docFlow.klientNip=this.value" placeholder="000-000-00-00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cena ofertowa (PLN)</label>
+          <input type="number" class="form-input" id="docZamCena" value="${docFlow.cenaOferta||''}"
+            oninput="docFlow.cenaOferta=parseFloat(this.value)||null" placeholder="Cena z oferty klienta" min="0" step="1000">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Uwagi / specyfikacja dodatkowa</label>
+          <textarea class="form-input" rows="3"
+            oninput="docFlow.uwagi=this.value" placeholder="np. wymagana konfiguracja, termin dostawy, uwagi do oferty...">${escapeHtml(docFlow.uwagi)}</textarea>
+        </div>
+      </div>`;
+    footer.innerHTML = `
+      <button class="btn" onclick="docFlow.step=2;renderDocFlow()">← Wstecz</button>
+      <div class="wiz-footer-spacer"></div>
+      <button class="btn primary" onclick="docFlowSaveOrder()">Wyślij zapotrzebowanie do AG →</button>`;
+  }
+
+  else if(docFlow.step === 4) {
+    const m = docFlow.createdMachineId ? machines.find(x=>x.id===docFlow.createdMachineId) : null;
+    body.innerHTML = `
+      <div style="text-align:center;padding:40px 20px">
+        <div style="font-size:52px;margin-bottom:16px">✅</div>
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--green)">Zapotrzebowanie wysłane!</h2>
+        <p style="font-size:13px;color:var(--gray-500);margin-bottom:24px">
+          Dział administracji handlowej (AG) otrzymał zgłoszenie. Maszyna pojawi się w głównej liście ze statusem „Do zamówienia".
+        </p>
+        ${m?`<div style="background:var(--gray-100);border-radius:8px;padding:16px;text-align:left;max-width:360px;margin:0 auto 20px">
+          <div style="font-weight:700;margin-bottom:6px;font-size:14px">${escapeHtml(m.model)}</div>
+          <div style="font-size:12px;color:var(--gray-500)">Klient: ${escapeHtml(m.klient||'—')}</div>
+          <div style="margin-top:8px"><span class="badge badge-do-zamowienia">Do zamówienia</span></div>
+        </div>`:''}
+        <p style="font-size:11px;color:var(--gray-300)">
+          Docelowo Power Automate wyśle powiadomienie do AG po zapisaniu pliku w SharePoint.
+        </p>
+      </div>`;
+    footer.innerHTML = `
+      <div class="wiz-footer-spacer"></div>
+      <button class="btn" onclick="switchView('maszyny', document.querySelector('.main-nav-tab'))">Przejdź do listy maszyn</button>
+      <button class="btn primary" onclick="docFlowReset()">+ Nowe zapotrzebowanie</button>`;
+  }
+}
+
+function docFileSelected(input) {
+  if(input.files && input.files[0]) {
+    docFlow.file = { name: input.files[0].name, size: input.files[0].size };
+    renderDocFlow();
+  }
+}
+function docFileDrop(evt) {
+  const f = evt.dataTransfer.files[0];
+  if(f) { docFlow.file = { name: f.name, size: f.size }; renderDocFlow(); }
+}
+
+function docFlowSearch() {
+  const model = docFlow.model.trim();
+  const producent = docFlow.producent.trim();
+  if(!model && !producent) { showToast('Wpisz przynajmniej model lub producenta'); return; }
+  docFlow.model = model;
+  docFlow.producent = producent;
+  const mL = model.toLowerCase();
+  const pL = producent.toLowerCase();
+  const rz = docFlow.rodzaj;
+  docFlow.matches = machines.filter(m => {
+    if(m.status !== 'Dostępna') return false;
+    const mm = (m.model||'').toLowerCase();
+    const mp = (m.producent||'').toLowerCase();
+    const modelOk   = !mL || mm.includes(mL) || mL.split(' ').filter(w=>w.length>2).some(w=>mm.includes(w));
+    const prodOk    = !pL || mp.includes(pL) || pL.includes(mp);
+    const rodzajOk  = !rz  || m.rodzaj === rz;
+    return (modelOk || prodOk) && rodzajOk;
+  });
+  docFlow.step = 2;
+  renderDocFlow();
+}
+
+function docFlowSelectMatch(id) {
+  docFlow.selectedMatchId = id;
+  renderDocFlow();
+}
+
+function docFlowContinueWithMachine() {
+  const m = machines.find(x => x.id === docFlow.selectedMatchId);
+  if(!m) return;
+  if(docFlow.file) m.oferta_dokument = docFlow.file.name;
+  wiz.machineId = m.id;
+  wiz.config = m.konfiguracja ? [...m.konfiguracja] : [];
+  wiz.step = 2;
+  sprzedazMode = 'wizard';
+  renderSprzedazModeBar();
+  renderWiz();
+  showToast('Maszyna wybrana: ' + m.model + ' – teraz przypisz klienta', 'green');
+}
+
+function docFlowSaveOrder() {
+  if(!(docFlow.klientNazwa||'').trim()) { showToast('Wpisz nazwę klienta'); return; }
+  const newId = Math.max(...machines.map(m=>m.id), 0) + 1;
+  machines.push({
+    id: newId, model: docFlow.model||'—', producent: docFlow.producent||'—',
+    rodzaj: docFlow.rodzaj||'Inne', status: 'Do zamówienia',
+    klient: docFlow.klientNazwa, nip: docFlow.klientNip,
+    handlowiec: currentRole === 'Handlowiec' ? 'Handlowiec' : '',
+    cena_oferta: docFlow.cenaOferta, komentarz: docFlow.uwagi,
+    oferta_dokument: docFlow.file ? docFlow.file.name : null,
+    oferta_data: new Date().toISOString().split('T')[0],
+    dzial:'AG', magazyn:'—', vin:'—',
+    data_przy_zamowieniu: new Date().toISOString().split('T')[0],
+    rok_prod:null, rejestracja:'', konfiguracja:[], demo:'Nie',
+    cmr:'', ubezpieczenie:'', mth:'', nr_umowy:'', nr_id_profile:'',
+    homologacja:'', jd_link:'', crm_link:'', planowana_faktura:'',
+    doposazenie_jest:'', doposazenie_powinno:'',
+  });
+  docFlow.createdMachineId = newId;
+  renderStepper(); renderStats(); renderTable();
+  docFlow.step = 4;
+  renderDocFlow();
+}
+
+function docFlowReset() {
+  docFlow = { step:1, file:null, model:'', producent:'', rodzaj:'', matches:[], selectedMatchId:null, klientNazwa:'', klientNip:'', cenaOferta:null, uwagi:'', createdMachineId:null };
+  renderDocFlow();
+}
+
 let wiz = { step:1, machineId:null, config:[], clientId:null, isNewClient:false, newClientData:{}, cenaOferta:null };
 
 const wizSteps = [
@@ -2988,7 +3312,7 @@ function switchView(view, el) {
   el.classList.add('active');
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
-  if(view === 'sprzedaz') renderWiz();
+  if(view === 'sprzedaz') { renderSprzedazModeBar(); if(sprzedazMode==='wizard') renderWiz(); else renderDocFlow(); }
 }
 
 // ─────────────────────────────────────────────

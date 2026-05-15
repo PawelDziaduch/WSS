@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(git -C \"c:\\\\Users\\\\PawełDziaduch\\\\OneDrive - Firma Wanicki Sp. z o. o\\\\Dokumenty\\\\Projekty\\\\Aplikacja administracyjna sprzedaży\\\\WSS\" ls-files)",
-      "WebFetch(domain:wanickicloud-my.sharepoint.com)"
+      "WebFetch(domain:wanickicloud-my.sharepoint.com)",
+      "PowerShell($dir = \"c:\\\\Users\\\\PawełDziaduch\\\\OneDrive - Firma Wanicki Sp. z o. o\\\\Dokumenty\\\\Projekty\\\\Aplikacja administracyjna sprzedaży\"; $items = @\\(Get-ChildItem $dir -Force -ErrorAction SilentlyContinue\\); Write-Host \"Count: $\\($items.Count\\)\"; $items | Select-Object Name, Mode | Format-Table)"
     ]
   }
 }
