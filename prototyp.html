@@ -2867,30 +2867,31 @@ function renderDocFlow() {
             ${allAvail.length} szt. dostępnych${docFlow.file?` · oferta: <strong>${escapeHtml(docFlow.file.name)}</strong>`:''}
           </p>
         </div>
-        <span style="font-size:12px;color:var(--gray-500)">Pokazano: <strong>${filtered.length}</strong></span>
+        <span id="docFilterCount" style="font-size:12px;color:var(--gray-500)">Pokazano: <strong>${filtered.length}</strong></span>
       </div>
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
         <div class="search-box" style="flex:1;min-width:180px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Szukaj: model, producent, VIN..."
+          <input type="text" id="docFilterTextInput" placeholder="Szukaj: model, producent, VIN..."
             value="${escapeHtml(docFlow.filterText)}"
-            oninput="docFlow.filterText=this.value;renderDocFlow()">
+            oninput="docFlow.filterText=this.value;docFlowUpdateList()">
         </div>
-        <select class="filter-select" onchange="docFlow.filterDzial=this.value;renderDocFlow()">
+        <select class="filter-select" onchange="docFlow.filterDzial=this.value;docFlowUpdateList()">
           <option value="">Wszystkie działy</option>
           ${dzialy.map(d=>`<option value="${escapeHtml(d)}" ${docFlow.filterDzial===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}
         </select>
-        <select class="filter-select" onchange="docFlow.filterMagazyn=this.value;renderDocFlow()">
+        <select class="filter-select" onchange="docFlow.filterMagazyn=this.value;docFlowUpdateList()">
           <option value="">Wszystkie oddziały</option>
           ${magazyny.map(d=>`<option value="${escapeHtml(d)}" ${docFlow.filterMagazyn===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}
         </select>
         ${(docFlow.filterText||docFlow.filterDzial||docFlow.filterMagazyn)?`
-          <button class="btn" style="font-size:11px;white-space:nowrap" onclick="docFlow.filterText='';docFlow.filterDzial='';docFlow.filterMagazyn='';renderDocFlow()">
+          <button class="btn" style="font-size:11px;white-space:nowrap" onclick="docFlow.filterText='';docFlow.filterDzial='';docFlow.filterMagazyn='';document.getElementById('docFilterTextInput').value='';docFlowUpdateList()">
             Wyczyść filtry ✕
           </button>`:''}
       </div>
 
+      <div id="docFlowList">
       ${filtered.length ? `
         ${docFlow.selectedMatchId?`
           <div style="background:var(--green-pale);border:1px solid var(--green);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--green);font-weight:600">
@@ -2930,7 +2931,8 @@ function renderDocFlow() {
         <button class="btn primary" style="width:100%;justify-content:center;padding:12px" onclick="docFlow.step=3;renderDocFlow()">
           Utwórz zamówienie dla AG →
         </button>
-      `}`;
+      `}
+      </div>`;
     footer.innerHTML = `
       <button class="btn" onclick="docFlow.step=1;renderDocFlow()">← Wstecz</button>
       <div class="wiz-footer-spacer"></div>
@@ -3067,6 +3069,67 @@ function docFileDrop(evt) {
   if(f) { docFlow.file = { name: f.name, size: f.size }; renderDocFlow(); }
 }
 
+function docFlowUpdateList() {
+  if(docFlow.step !== 2) return;
+  const allAvail = machines.filter(m => m.status === 'Dostępna');
+  const ft = (docFlow.filterText||'').toLowerCase();
+  const filtered = allAvail.filter(m => {
+    if(docFlow.filterDzial   && m.dzial   !== docFlow.filterDzial)   return false;
+    if(docFlow.filterMagazyn && m.magazyn !== docFlow.filterMagazyn) return false;
+    if(ft) {
+      const hay = [m.model,m.producent,m.vin,m.rodzaj].join(' ').toLowerCase();
+      if(!hay.includes(ft)) return false;
+    }
+    return true;
+  });
+  const listEl = document.getElementById('docFlowList');
+  const countEl = document.getElementById('docFilterCount');
+  if(countEl) countEl.innerHTML = `Pokazano: <strong>${filtered.length}</strong>`;
+  if(!listEl) return;
+  listEl.innerHTML = filtered.length ? `
+    ${docFlow.selectedMatchId?`
+      <div style="background:var(--green-pale);border:1px solid var(--green);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--green);font-weight:600">
+        ✓ Wybrano: ${escapeHtml((machines.find(x=>x.id===docFlow.selectedMatchId)||{}).model||'—')}
+      </div>`:''}
+    ${filtered.map(m => `
+      <div class="doc-match-card ${docFlow.selectedMatchId===m.id?'selected':''}" onclick="docFlowSelectMatch(${m.id})">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:14px">${escapeHtml(m.model)}</div>
+            <div style="font-size:11px;color:var(--gray-500);margin-top:3px;display:flex;flex-wrap:wrap;gap:6px">
+              <span>${escapeHtml(m.producent||'—')}</span>
+              <span class="chip" style="font-size:10px">${escapeHtml(m.rodzaj||'—')}</span>
+              <span class="chip" style="font-size:10px">${escapeHtml(m.dzial||'—')}</span>
+              <span>Rok: ${m.rok_prod||'—'}</span>
+              <span>Oddział: ${escapeHtml(m.magazyn||'—')}</span>
+              ${m.demo==='Tak'?'<span class="badge badge-rezerwacja" style="font-size:10px">Demo</span>':''}
+            </div>
+            <div style="font-size:10px;color:var(--gray-300);font-family:monospace;margin-top:3px">${escapeHtml(m.vin||'—')}</div>
+          </div>
+          ${docFlow.selectedMatchId===m.id?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>':''}
+        </div>
+      </div>`).join('')}
+    <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-200)">
+      <span style="font-size:12px;color:var(--gray-500)">Nie znalazłeś odpowiedniej maszyny?</span>
+      <button class="btn" style="font-size:12px;margin-left:8px" onclick="docFlow.step=3;docFlow.selectedMatchId=null;renderDocFlow()">
+        Utwórz zamówienie dla AG
+      </button>
+    </div>` : `
+    <div style="background:var(--red-pale);border:1px solid var(--red);border-radius:8px;padding:16px;margin-bottom:16px">
+      <div style="font-weight:700;color:var(--red);margin-bottom:4px">Brak maszyn spełniających kryteria</div>
+      <div style="font-size:12px;color:var(--gray-700)">${allAvail.length===0?'Brak dostępnych maszyn na stanie.':'Zmień filtry lub utwórz zamówienie.'}</div>
+    </div>
+    <button class="btn primary" style="width:100%;justify-content:center;padding:12px" onclick="docFlow.step=3;renderDocFlow()">
+      Utwórz zamówienie dla AG →
+    </button>`;
+  // Aktualizuj footer button "Kontynuuj sprzedaż"
+  const footer = document.getElementById('wizFooter');
+  if(footer) footer.innerHTML = `
+    <button class="btn" onclick="docFlow.step=1;renderDocFlow()">← Wstecz</button>
+    <div class="wiz-footer-spacer"></div>
+    ${docFlow.selectedMatchId ? '<button class="btn primary" onclick="docFlowContinueWithMachine()">Kontynuuj sprzedaż →</button>' : ''}`;
+}
+
 function docFlowSearch() {
   docFlow.model    = docFlow.model.trim();
   docFlow.producent = docFlow.producent.trim();
@@ -3080,7 +3143,7 @@ function docFlowSearch() {
 
 function docFlowSelectMatch(id) {
   docFlow.selectedMatchId = id;
-  renderDocFlow();
+  docFlowUpdateList();
 }
 
 function docFlowContinueWithMachine() {
