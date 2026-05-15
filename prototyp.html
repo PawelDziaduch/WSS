@@ -2810,6 +2810,16 @@ function renderDocFlow() {
         <br><span style="color:var(--orange);font-weight:600">Docelowo Power Automate (SharePoint) wypełni te pola automatycznie po wgraniu pliku.</span>
       </p>
       ${fileHtml}
+      ${docFlow.file ? `
+        <div style="display:flex;align-items:center;gap:12px;background:var(--orange-pale);border:1px solid var(--orange);border-radius:8px;padding:12px 14px;margin-top:12px">
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:700;color:var(--orange);margin-bottom:2px">⚡ Wyciągnij dane z pliku</div>
+            <div style="font-size:11px;color:var(--gray-500)">Symulacja – w produkcji zastąpione przez Power Automate + AI Builder.</div>
+          </div>
+          <button class="btn" style="font-size:12px;white-space:nowrap;border-color:var(--orange);color:var(--orange)" onclick="simulateDocExtract()">
+            Analizuj plik
+          </button>
+        </div>` : ''}
       <div style="margin-top:22px">
         <h3 style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--gray-700)">Dane maszyny z oferty</h3>
         <div class="form-grid">
@@ -3099,6 +3109,29 @@ function docFileSelected(input) {
 function docFileDrop(evt) {
   const f = evt.dataTransfer.files[0];
   if(f) { docFlow.file = { name: f.name, size: f.size }; renderDocFlow(); }
+}
+
+function simulateDocExtract() {
+  if(!docFlow.file) return;
+  // Próbki danych — w produkcji: Power Automate wywołuje AI Builder i zwraca JSON
+  const samples = [
+    { producent:'John Deere', model:'6R 150',      rodzaj:'Ciągnik'  },
+    { producent:'Fendt',      model:'724 Vario',    rodzaj:'Ciągnik'  },
+    { producent:'New Holland',model:'T7.270',       rodzaj:'Ciągnik'  },
+    { producent:'Claas',      model:'Lexion 8900',  rodzaj:'Kombajn'  },
+    { producent:'John Deere', model:'S790i',        rodzaj:'Kombajn'  },
+    { producent:'Krone',      model:'BigX 1180',    rodzaj:'Sieczkarnia' },
+    { producent:'Amazone',    model:'ZA-TS 4200',   rodzaj:'Inne'     },
+  ];
+  showToast('Analizuję plik…');
+  setTimeout(() => {
+    const s = samples[Math.floor(Math.random() * samples.length)];
+    docFlow.producent = s.producent;
+    docFlow.model     = s.model;
+    docFlow.rodzaj    = s.rodzaj;
+    renderDocFlow();
+    showToast(`Wyciągnięto dane (symulacja): ${s.producent} ${s.model}`, 'green');
+  }, 1000);
 }
 
 function docZamScanSelected(input) {
