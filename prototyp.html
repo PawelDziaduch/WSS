@@ -1167,7 +1167,7 @@
         <div class="form-group"><label class="form-label">Rok prod.</label><input class="form-input" id="e_rok_prod" type="number" placeholder="2024"></div>
         <div class="form-group"><label class="form-label">MTH</label><input class="form-input" id="e_mth" type="number" placeholder="0"></div>
         <div class="form-group"><label class="form-label">Oddział</label>
-          <select class="form-input" id="e_magazyn"><option>Mogilany</option><option>Kajetanów</option><option>Wolbórz</option><option>Jarosław</option><option>Pułankowice</option><option>Smęgorzów</option><option>Wola Piasecka</option><option>Sitaniec</option><option>Janówek</option><option>Kutno</option><option>Bramki</option><option>Reńska Wieś</option><option>Miechów</option></select>
+          <select class="form-input" id="e_magazyn"><option>Mogilany</option><option>Kajetanów</option><option>Wolbórz</option><option>Jarosław</option><option>Pułankowice</option><option>Smęgorzów</option><option>Wola Piasecka</option><option>Sitaniec</option><option>Janówek</option><option>Kutno</option><option>Bramki</option><option>Reńska Wieś</option><option>Miechów</option><option>Grójec</option><option>Dąbrowa Tarnowska</option></select>
         </div>
         <div class="form-group"><label class="form-label">Nr zamówienia</label><input class="form-input" id="e_numer_zam"></div>
         <div class="form-group"><label class="form-label">Nr ID Profile</label><input class="form-input" id="e_nr_id_profile"></div>
@@ -1182,8 +1182,27 @@
       <div class="form-grid">
         <div class="form-group"><label class="form-label">Klient</label><input class="form-input" id="e_klient"></div>
         <div class="form-group"><label class="form-label">NIP</label><input class="form-input" id="e_nip" placeholder="000-000-00-00"></div>
-        <div class="form-group"><label class="form-label">Handlowiec</label><input class="form-input" id="e_handlowiec"></div>
-        <div class="form-group"><label class="form-label">RKS</label><input class="form-input" id="e_rks"></div>
+        <div class="form-group"><label class="form-label">Handlowiec</label>
+          <select class="form-input" id="e_handlowiec" onchange="autoFillRksOddzial()">
+            <option value="">— wybierz —</option>
+            <option>Artur Spalek</option><option>Daniel Fajkis</option><option>Artur Kamiński</option>
+            <option>Janusz Kornaga</option><option>Pawel Majewski</option><option>Stanislaw Narog</option>
+            <option>Piotr Gawlik</option><option>Szymon Olak</option>
+            <option>Jaroslaw Pawlowski</option><option>Rafał Prokop</option><option>Marcin Marchewka</option>
+            <option>Michal Piech</option><option>Ryszard Czerniak</option>
+            <option>Karol Mielniczek</option><option>Michal Krzysztofek</option><option>Łukasz Pierzchała</option>
+            <option>Przemysław Jerzmanowski</option><option>Radosław Michalak</option><option>Szydzinski Marcin</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">RKS</label>
+          <select class="form-input" id="e_rks">
+            <option value="">— wybierz —</option>
+            <option>Paweł Kwiatkowski</option>
+            <option>Tomasz Gołębiowski</option>
+            <option>Roman Bańka</option>
+            <option>Hubert Pryczek</option>
+          </select>
+        </div>
         <div class="form-group"><label class="form-label">Nr umowy</label><input class="form-input" id="e_nr_umowy"></div>
         <div class="form-group"><label class="form-label">Data umowy</label><input class="form-input" id="e_data_umowy" type="date"></div>
         <div class="form-group"><label class="form-label">Finansowanie</label>
@@ -1318,6 +1337,28 @@
 // ─────────────────────────────────────────────
 
 const users = [];
+
+const STAFF = [
+  { handlowiec: 'Artur Spalek',            rks: 'Paweł Kwiatkowski',   oddział: 'Reńska Wieś' },
+  { handlowiec: 'Daniel Fajkis',           rks: 'Paweł Kwiatkowski',   oddział: 'Reńska Wieś' },
+  { handlowiec: 'Artur Kamiński',          rks: 'Paweł Kwiatkowski',   oddział: 'Reńska Wieś' },
+  { handlowiec: 'Janusz Kornaga',          rks: 'Tomasz Gołębiowski',  oddział: 'Jarosław' },
+  { handlowiec: 'Pawel Majewski',          rks: 'Tomasz Gołębiowski',  oddział: 'Jarosław' },
+  { handlowiec: 'Stanislaw Narog',         rks: 'Tomasz Gołębiowski',  oddział: 'Jarosław' },
+  { handlowiec: 'Piotr Gawlik',            rks: 'Tomasz Gołębiowski',  oddział: 'Dąbrowa Tarnowska' },
+  { handlowiec: 'Szymon Olak',             rks: 'Tomasz Gołębiowski',  oddział: 'Dąbrowa Tarnowska' },
+  { handlowiec: 'Jaroslaw Pawlowski',      rks: 'Roman Bańka',         oddział: 'Sitaniec' },
+  { handlowiec: 'Rafał Prokop',            rks: 'Roman Bańka',         oddział: 'Sitaniec' },
+  { handlowiec: 'Marcin Marchewka',        rks: 'Roman Bańka',         oddział: 'Grójec' },
+  { handlowiec: 'Michal Piech',            rks: 'Roman Bańka',         oddział: 'Wola Piasecka' },
+  { handlowiec: 'Ryszard Czerniak',        rks: 'Roman Bańka',         oddział: 'Pułankowice' },
+  { handlowiec: 'Karol Mielniczek',        rks: 'Hubert Pryczek',      oddział: 'Kajetanów' },
+  { handlowiec: 'Michal Krzysztofek',      rks: 'Hubert Pryczek',      oddział: 'Kajetanów' },
+  { handlowiec: 'Łukasz Pierzchała',       rks: 'Hubert Pryczek',      oddział: 'Wolbórz' },
+  { handlowiec: 'Przemysław Jerzmanowski', rks: 'Hubert Pryczek',      oddział: 'Kutno' },
+  { handlowiec: 'Radosław Michalak',       rks: 'Hubert Pryczek',      oddział: 'Kutno' },
+  { handlowiec: 'Szydzinski Marcin',       rks: 'Hubert Pryczek',      oddział: 'Bramki' },
+];
 
 const clients = [
   {id:1,nazwa:'Gospodarstwo Rolne Józef Malinowski',nip:'6571234567',miejscowosc:'Kielce',handlowiec:'Katarzyna Wiśniewska',dzial:'AG',liczba_umow:2,ostatnia_aktywnosc:'2025-03-25'},
@@ -2662,6 +2703,14 @@ function clearRejectionNote(id) {
 // EDYCJA MASZYNY (AG)
 // ─────────────────────────────────────────────
 let editTargetId = null;
+
+function autoFillRksOddzial() {
+  const name = document.getElementById('e_handlowiec').value;
+  const s = STAFF.find(x => x.handlowiec === name);
+  if(!s) return;
+  document.getElementById('e_rks').value     = s.rks;
+  document.getElementById('e_magazyn').value = s.oddział;
+}
 
 function openEditModal(id) {
   editTargetId = id;
