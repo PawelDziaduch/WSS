@@ -1941,22 +1941,6 @@ function getActions(m) {
 
   // ── RKS: akceptuje lub odrzuca oferty, wnioskuje o HoD ──
   if(role === 'RKS') {
-    if(m.status === 'Oferta') {
-      btns += `<button class="btn-sm primary" onclick="rksAccept(${m.id})">✓ Zaakceptuj cenę</button>`;
-      btns += `<button class="btn-sm blue" onclick="openRksPriceModal(${m.id})">✎ Zmień cenę</button>`;
-      btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rksReject(${m.id})">✕ Odrzuć ofertę</button>`;
-      btns += `<button class="btn-sm" onclick="generateContract(${m.id})">Podgląd oferty</button>`;
-      if(!m.hod_status || m.hod_status === 'rejected') {
-        btns += `<button class="btn-sm" style="color:var(--purple);border-color:var(--purple)" onclick="openHodModal(${m.id})">Wnioskuj o HoD</button>`;
-      } else if(m.hod_status === 'pending') {
-        btns += `<span style="font-size:11px;color:var(--purple);font-weight:600;padding:6px 8px">⏳ HoD oczekuje na akceptację AG</span>`;
-      } else if(m.hod_status === 'approved') {
-        btns += `<button class="btn-sm primary" onclick="applyHodAndSend(${m.id})">✓ Zastosuj HoD i wyślij do handlowca</button>`;
-      }
-    }
-    if(m.status === 'Rezerwacja' && m.cena_rks_final) {
-      btns += `<span style="font-size:11px;color:var(--green);font-weight:600;padding:6px 8px">✔ Cena zatwierdzona: ${m.cena_rks_final.toLocaleString('pl-PL')} PLN</span>`;
-    }
     btns += `<button class="btn-sm" onclick="showToast('Kopiowanie linku...')">🔗 Udostępnij</button>`;
     return btns;
   }
@@ -1976,10 +1960,6 @@ function getActions(m) {
   // ── AG i pozostałe: pełny przepływ statusów + decyzje HoD ──
   if(role === 'AG') {
     btns += `<button class="btn-sm blue" onclick="openEditModal(${m.id})">✏ Edytuj dane</button>`;
-  }
-  if(m.hod_status === 'pending' && role === 'AG') {
-    btns += `<button class="btn-sm" style="color:var(--purple);border-color:var(--purple);font-weight:600" onclick="openHodAGModal(${m.id})">✓ Rozpatrz HoD${m.hod_nr ? ' · ' + m.hod_nr : ''}</button>`;
-    btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rejectHod(${m.id})">✕ Odrzuć HoD</button>`;
   }
   if(m.status==='Dostępna' && role==='AG') {
     btns += `<button class="btn-sm orange" onclick="changeStatus(${m.id},'Rezerwacja')">Zarezerwuj</button>`;
