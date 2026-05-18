@@ -1247,6 +1247,57 @@
   </div>
 </div>
 
+<!-- MODAL: Help on Deal – decyzja AG -->
+<div class="modal-overlay" id="modalHodAG">
+  <div class="modal" style="width:580px">
+    <div class="modal-title" style="color:var(--purple)">Help on Deal – decyzja AG</div>
+    <div id="hodAGDetails" style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px"></div>
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px">Udzielane zniżki:</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px">
+      <thead>
+        <tr style="background:var(--gray-100);font-size:12px;font-weight:600">
+          <th style="padding:6px 8px;text-align:left;border:1px solid var(--gray-200);width:130px">Typ</th>
+          <th style="padding:6px 8px;text-align:left;border:1px solid var(--gray-200);width:110px">Wartość</th>
+          <th style="padding:6px 8px;text-align:left;border:1px solid var(--gray-200)">Opis</th>
+          <th style="padding:6px 8px;width:36px;border:1px solid var(--gray-200)"></th>
+        </tr>
+      </thead>
+      <tbody id="hodZnizkiBody"></tbody>
+    </table>
+    <button class="btn-sm" onclick="addHodZnizka()" style="margin-bottom:14px">+ Dodaj zniżkę</button>
+    <div id="hodTotalInfo" style="font-size:13px;font-weight:600;color:var(--purple);min-height:20px;margin-bottom:12px"></div>
+    <div class="form-group">
+      <label class="form-label">Komentarz AG (opcjonalny)</label>
+      <textarea class="form-input" id="hodAGKomentarz" rows="2" style="resize:vertical;font-family:var(--font)"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeHodAGModal()">Anuluj</button>
+      <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="confirmHodAG(false)">✕ Odrzuć wniosek</button>
+      <button class="btn primary" onclick="confirmHodAG(true)">✓ Zatwierdź HoD</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Zmiana ceny przez RKS -->
+<div class="modal-overlay" id="modalRksChangePrice">
+  <div class="modal" style="width:440px">
+    <div class="modal-title">Zmień cenę oferty</div>
+    <p id="rksPriceInfo" style="font-size:13px;color:var(--gray-700);margin-bottom:16px"></p>
+    <div class="form-group">
+      <label class="form-label">Nowa cena netto (PLN) *</label>
+      <input type="number" class="form-input" id="rksPriceNew" min="0" step="100" placeholder="np. 450 000">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Uzasadnienie (opcjonalne)</label>
+      <textarea class="form-input" id="rksPriceComment" rows="3" style="resize:vertical;font-family:var(--font)" placeholder="np. Cena skorygowana zgodnie z negocjacjami..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeRksPriceModal()">Anuluj</button>
+      <button class="btn primary" onclick="confirmRksChangePrice()">Zatwierdź i wyślij do handlowca</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONTRACT OVERLAY -->
 <div class="contract-overlay" id="contractOverlay">
   <div class="contract-toolbar">
@@ -1819,6 +1870,9 @@ function getActions(m) {
     if(m.status === 'Oferta') {
       btns += `<span style="font-size:11px;color:var(--orange);font-weight:600;padding:6px 8px">⏳ Oczekuje na akceptację RKS</span>`;
     }
+    if(m.status === 'Rezerwacja' && m.cena_rks_final) {
+      btns += `<div style="font-size:11px;background:var(--green-pale,#f0fdf4);border:1px solid var(--green);border-radius:6px;padding:6px 10px;margin:4px 0;color:var(--green);font-weight:600">✔ RKS zaakceptował cenę: ${m.cena_rks_final.toLocaleString('pl-PL')} PLN${m.hod_nr ? ' (z HoD ' + m.hod_nr + ')' : ''}</div>`;
+    }
     btns += `<button class="btn-sm" onclick="showToast('Kopiowanie linku...')">🔗 Udostępnij</button>`;
     return btns;
   }
@@ -1826,16 +1880,20 @@ function getActions(m) {
   // ── RKS: akceptuje lub odrzuca oferty, wnioskuje o HoD ──
   if(role === 'RKS') {
     if(m.status === 'Oferta') {
-      btns += `<button class="btn-sm primary" onclick="rksAccept(${m.id})">✓ Zaakceptuj ofertę</button>`;
+      btns += `<button class="btn-sm primary" onclick="rksAccept(${m.id})">✓ Zaakceptuj cenę</button>`;
+      btns += `<button class="btn-sm blue" onclick="openRksPriceModal(${m.id})">✎ Zmień cenę</button>`;
       btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rksReject(${m.id})">✕ Odrzuć ofertę</button>`;
-      btns += `<button class="btn-sm blue" onclick="generateContract(${m.id})">Podgląd oferty</button>`;
+      btns += `<button class="btn-sm" onclick="generateContract(${m.id})">Podgląd oferty</button>`;
+      if(!m.hod_status || m.hod_status === 'rejected') {
+        btns += `<button class="btn-sm" style="color:var(--purple);border-color:var(--purple)" onclick="openHodModal(${m.id})">Wnioskuj o HoD</button>`;
+      } else if(m.hod_status === 'pending') {
+        btns += `<span style="font-size:11px;color:var(--purple);font-weight:600;padding:6px 8px">⏳ HoD oczekuje na akceptację AG</span>`;
+      } else if(m.hod_status === 'approved') {
+        btns += `<button class="btn-sm primary" onclick="applyHodAndSend(${m.id})">✓ Zastosuj HoD i wyślij do handlowca</button>`;
+      }
     }
-    if(!m.hod_status || m.hod_status === 'rejected') {
-      btns += `<button class="btn-sm" style="color:var(--purple);border-color:var(--purple)" onclick="openHodModal(${m.id})">Wnioskuj o HoD</button>`;
-    } else if(m.hod_status === 'pending') {
-      btns += `<span style="font-size:11px;color:var(--purple);font-weight:600;padding:6px 8px">⏳ HoD oczekuje na akceptację</span>`;
-    } else if(m.hod_status === 'approved') {
-      btns += `<span style="font-size:11px;color:var(--green);font-weight:600;padding:6px 8px">✔ HoD zatwierdzony (+${m.hod_rabat}%)</span>`;
+    if(m.status === 'Rezerwacja' && m.cena_rks_final) {
+      btns += `<span style="font-size:11px;color:var(--green);font-weight:600;padding:6px 8px">✔ Cena zatwierdzona: ${m.cena_rks_final.toLocaleString('pl-PL')} PLN</span>`;
     }
     btns += `<button class="btn-sm" onclick="showToast('Kopiowanie linku...')">🔗 Udostępnij</button>`;
     return btns;
@@ -1858,7 +1916,7 @@ function getActions(m) {
     btns += `<button class="btn-sm blue" onclick="openEditModal(${m.id})">✏ Edytuj dane</button>`;
   }
   if(m.hod_status === 'pending' && role === 'AG') {
-    btns += `<button class="btn-sm" style="color:var(--purple);border-color:var(--purple);font-weight:600" onclick="approveHod(${m.id})">✓ Zatwierdź HoD (+${m.hod_rabat}%)</button>`;
+    btns += `<button class="btn-sm" style="color:var(--purple);border-color:var(--purple);font-weight:600" onclick="openHodAGModal(${m.id})">✓ Rozpatrz HoD${m.hod_nr ? ' · ' + m.hod_nr : ''}</button>`;
     btns += `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="rejectHod(${m.id})">✕ Odrzuć HoD</button>`;
   }
   if(m.status==='Dostępna' && role==='AG') {
@@ -2517,9 +2575,11 @@ function sendToRKS(id) {
 }
 function rksAccept(id) {
   const m = machines.find(x => x.id === id);
+  m.cena_rks_final = m.cena_oferta;
+  m.rks_akcja = 'accept';
   m.status = 'Rezerwacja';
   renderStepper(); renderStats(); renderTable(); renderPanel(m, activeTab);
-  showToast('Oferta zaakceptowana – maszyna zarezerwowana', 'green');
+  showToast('Cena zaakceptowana – maszyna zarezerwowana', 'green');
 }
 let rksRejectTargetId = null;
 
@@ -2679,7 +2739,10 @@ function saveZaliczka() {
 // ─────────────────────────────────────────────
 // HELP ON DEAL (HoD)
 // ─────────────────────────────────────────────
-let hodTargetId = null;
+let hodTargetId    = null;
+let hodAGTargetId  = null;
+let hodCounter     = 0;
+let rksPriceTargetId = null;
 
 function openHodModal(id) {
   hodTargetId = id;
@@ -2696,24 +2759,151 @@ function submitHod() {
   if(!rabat || rabat <= 0) { showToast('Podaj wartość dodatkowego rabatu'); return; }
   if(!kom) { showToast('Wpisz uzasadnienie wniosku HoD'); return; }
   const m = machines.find(x => x.id === hodTargetId);
-  m.hod_status = 'pending';
-  m.hod_rabat = rabat;
-  m.hod_komentarz = kom;
-  m.hod_data = new Date().toISOString().split('T')[0];
-  m.hod_odpowiedz = '';
+  hodCounter++;
+  m.hod_nr       = 'HOD/' + new Date().getFullYear() + '/' + String(hodCounter).padStart(3,'0');
+  m.hod_status   = 'pending';
+  m.hod_rabat    = rabat;
+  m.hod_komentarz= kom;
+  m.hod_data     = new Date().toISOString().split('T')[0];
+  m.hod_odpowiedz= '';
+  m.hod_znizki   = [];
+  m.hod_cena_po  = null;
   closeHodModal();
   renderTable();
   renderPanel(m, activeTab);
-  showToast('Wniosek HoD wysłany – oczekuje na akceptację administracji', 'green');
+  showToast('Wniosek ' + m.hod_nr + ' wysłany – oczekuje na decyzję AG', 'green');
 }
-function approveHod(id) {
+
+// ── AG: rozpatruje wniosek HoD ──
+function openHodAGModal(id) {
+  hodAGTargetId = id;
   const m = machines.find(x => x.id === id);
-  m.hod_status = 'approved';
-  m.hod_odpowiedz_data = new Date().toISOString().split('T')[0];
-  renderTable();
-  renderPanel(m, activeTab);
-  showToast('HoD zatwierdzony – RKS otrzyma powiadomienie', 'green');
+  const basePrice = m.cena_oferta || 0;
+  document.getElementById('hodAGDetails').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px">
+      <div><div style="color:var(--gray-500);margin-bottom:2px">Nr wniosku</div><strong>${m.hod_nr || '—'}</strong></div>
+      <div><div style="color:var(--gray-500);margin-bottom:2px">Maszyna</div><strong>${m.model || '—'}</strong></div>
+      <div><div style="color:var(--gray-500);margin-bottom:2px">Klient</div><strong>${m.klient || '—'}</strong></div>
+      <div><div style="color:var(--gray-500);margin-bottom:2px">Cena oferty</div><strong>${basePrice ? basePrice.toLocaleString('pl-PL') + ' PLN' : '—'}</strong></div>
+      <div><div style="color:var(--gray-500);margin-bottom:2px">Wnioskowany rabat</div><strong>${m.hod_rabat || 0}%</strong></div>
+      <div><div style="color:var(--gray-500);margin-bottom:2px">Data wniosku</div><strong>${m.hod_data || '—'}</strong></div>
+    </div>
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--gray-200);font-size:12px;color:var(--gray-700)">
+      <span style="font-weight:600">Uzasadnienie RKS:</span> ${m.hod_komentarz || '—'}
+    </div>`;
+  document.getElementById('hodZnizkiBody').innerHTML = '';
+  document.getElementById('hodAGKomentarz').value = '';
+  document.getElementById('hodTotalInfo').textContent = '';
+  addHodZnizka();
+  document.getElementById('modalHodAG').classList.add('open');
 }
+function closeHodAGModal() {
+  document.getElementById('modalHodAG').classList.remove('open');
+}
+function addHodZnizka() {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="padding:4px 6px;border:1px solid var(--gray-200)">
+      <select class="form-input" style="padding:4px 6px;height:auto;font-size:12px" onchange="calcHodTotal()">
+        <option value="procent">Procent (%)</option>
+        <option value="kwota">Kwota (PLN)</option>
+      </select>
+    </td>
+    <td style="padding:4px 6px;border:1px solid var(--gray-200)">
+      <input type="number" class="form-input" style="padding:4px 6px;height:auto;font-size:12px" min="0" step="0.5" placeholder="0" oninput="calcHodTotal()">
+    </td>
+    <td style="padding:4px 6px;border:1px solid var(--gray-200)">
+      <input type="text" class="form-input" style="padding:4px 6px;height:auto;font-size:12px" placeholder="np. rabat modelowy">
+    </td>
+    <td style="padding:4px 6px;border:1px solid var(--gray-200);text-align:center">
+      <button class="btn-sm" style="padding:2px 8px;color:var(--red);border-color:var(--red)" onclick="this.closest('tr').remove();calcHodTotal()">✕</button>
+    </td>`;
+  document.getElementById('hodZnizkiBody').appendChild(tr);
+  calcHodTotal();
+}
+function calcHodTotal() {
+  const m = machines.find(x => x.id === hodAGTargetId);
+  if(!m) return;
+  const basePrice = m.cena_oferta || 0;
+  let price = basePrice;
+  document.querySelectorAll('#hodZnizkiBody tr').forEach(tr => {
+    const typ = tr.cells[0].querySelector('select').value;
+    const val = parseFloat(tr.cells[1].querySelector('input').value) || 0;
+    if(val > 0) price = typ === 'procent' ? price * (1 - val/100) : price - val;
+  });
+  const disc = basePrice - price;
+  const pct  = basePrice > 0 ? ((disc/basePrice)*100).toFixed(1) : 0;
+  document.getElementById('hodTotalInfo').innerHTML = basePrice > 0
+    ? `Cena po zniżkach: <strong>${Math.round(price).toLocaleString('pl-PL')} PLN</strong>&nbsp;&nbsp;(łączny rabat: ${pct}% = ${Math.round(disc).toLocaleString('pl-PL')} PLN)`
+    : '';
+}
+function confirmHodAG(approve) {
+  const m = machines.find(x => x.id === hodAGTargetId);
+  const kom = document.getElementById('hodAGKomentarz').value.trim();
+  m.hod_ag_komentarz    = kom;
+  m.hod_odpowiedz_data  = new Date().toISOString().split('T')[0];
+  if(approve) {
+    const rows   = document.querySelectorAll('#hodZnizkiBody tr');
+    const znizki = [];
+    let price    = m.cena_oferta || 0;
+    rows.forEach(tr => {
+      const typ = tr.cells[0].querySelector('select').value;
+      const val = parseFloat(tr.cells[1].querySelector('input').value) || 0;
+      const opis= tr.cells[2].querySelector('input').value.trim();
+      if(val > 0) { znizki.push({typ, wartosc:val, opis}); price = typ==='procent' ? price*(1-val/100) : price-val; }
+    });
+    m.hod_status  = 'approved';
+    m.hod_znizki  = znizki;
+    m.hod_cena_po = Math.round(price);
+    closeHodAGModal();
+    renderTable(); renderPanel(m, activeTab);
+    showToast(m.hod_nr + ' zatwierdzony – RKS może zastosować zniżki', 'green');
+  } else {
+    m.hod_status = 'rejected';
+    closeHodAGModal();
+    renderTable(); renderPanel(m, activeTab);
+    showToast(m.hod_nr + ' odrzucony');
+  }
+}
+
+// ── RKS: zmiana ceny ──
+function openRksPriceModal(id) {
+  rksPriceTargetId = id;
+  const m = machines.find(x => x.id === id);
+  document.getElementById('rksPriceInfo').textContent =
+    'Cena zaproponowana przez handlowca: ' + (m.cena_oferta ? m.cena_oferta.toLocaleString('pl-PL') + ' PLN netto' : '—');
+  document.getElementById('rksPriceNew').value = m.cena_oferta || '';
+  document.getElementById('rksPriceComment').value = '';
+  document.getElementById('modalRksChangePrice').classList.add('open');
+}
+function closeRksPriceModal() {
+  document.getElementById('modalRksChangePrice').classList.remove('open');
+}
+function confirmRksChangePrice() {
+  const val = parseFloat(document.getElementById('rksPriceNew').value);
+  if(!val || val <= 0) { showToast('Podaj nową cenę'); return; }
+  const m = machines.find(x => x.id === rksPriceTargetId);
+  m.cena_oferta   = Math.round(val);
+  m.cena_rks_final= Math.round(val);
+  m.rks_akcja     = 'change';
+  m.rks_komentarz = document.getElementById('rksPriceComment').value.trim();
+  m.status = 'Rezerwacja';
+  closeRksPriceModal();
+  renderStepper(); renderStats(); renderTable(); renderPanel(m, activeTab);
+  showToast('Cena zmieniona na ' + m.cena_rks_final.toLocaleString('pl-PL') + ' PLN – handlowiec powiadomiony', 'green');
+}
+
+// ── RKS: zastosuj HoD i wyślij do handlowca ──
+function applyHodAndSend(id) {
+  const m = machines.find(x => x.id === id);
+  m.cena_oferta   = m.hod_cena_po;
+  m.cena_rks_final= m.hod_cena_po;
+  m.rks_akcja     = 'hod';
+  m.status = 'Rezerwacja';
+  renderStepper(); renderStats(); renderTable(); renderPanel(m, activeTab);
+  showToast(m.hod_nr + ' zastosowany – cena ' + m.cena_rks_final.toLocaleString('pl-PL') + ' PLN wysłana do handlowca', 'green');
+}
+
 function rejectHod(id) {
   const m = machines.find(x => x.id === id);
   m.hod_status = 'rejected';
@@ -2727,11 +2917,34 @@ function renderHodSection(m, role) {
     return `<div style="font-size:12px;color:var(--gray-500)">Brak aktywnego wniosku HoD.${role==='RKS' ? ' Użyj przycisku „Wnioskuj o HoD" poniżej.' : ''}</div>`;
   }
   const statusMap = {
-    pending:  { label:'Oczekuje na decyzję', color:'var(--purple)', bg:'#fff' },
-    approved: { label:'Zatwierdzony',        color:'var(--green)',  bg:'#f0fdf4' },
-    rejected: { label:'Odrzucony',           color:'var(--red)',    bg:'var(--red-pale)' },
+    pending:  { label:'Oczekuje na decyzję AG', color:'var(--purple)', bg:'#fff' },
+    approved: { label:'Zatwierdzony',            color:'var(--green)',  bg:'#f0fdf4' },
+    rejected: { label:'Odrzucony',               color:'var(--red)',    bg:'var(--red-pale)' },
   };
   const s = statusMap[m.hod_status];
+
+  // Build discounts table if AG set them
+  let znizkiHtml = '';
+  if(m.hod_znizki && m.hod_znizki.length) {
+    const rows = m.hod_znizki.map((z,i) => {
+      const val = z.typ === '%' ? z.wartosc + '%' : z.wartosc.toLocaleString('pl-PL') + ' PLN';
+      return `<tr><td style="padding:2px 6px">${i+1}.</td><td style="padding:2px 6px">${z.opis || '—'}</td><td style="padding:2px 6px;font-weight:600">${val}</td></tr>`;
+    }).join('');
+    znizkiHtml = `
+      <div class="field-row">
+        <div class="field full" style="background:#fff">
+          <div class="field-label">Zniżki AG</div>
+          <div class="field-value">
+            <table style="width:100%;font-size:12px;border-collapse:collapse">${rows}</table>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  const finalPrice = m.hod_cena_po
+    ? `<div class="field" style="background:#f0fdf4"><div class="field-label">Cena po HoD</div><div class="field-value highlight" style="color:var(--green)">${Math.round(m.hod_cena_po).toLocaleString('pl-PL')} PLN</div></div>`
+    : '';
+
   return `
     <div class="field-row">
       <div class="field" style="background:${s.bg}">
@@ -2739,13 +2952,14 @@ function renderHodSection(m, role) {
         <div class="field-value" style="color:${s.color};font-weight:700">${s.label}</div>
       </div>
       <div class="field" style="background:#fff">
-        <div class="field-label">Dodatkowy rabat</div>
-        <div class="field-value highlight">${m.hod_rabat ? m.hod_rabat + '%' : '—'}</div>
+        <div class="field-label">Nr wniosku</div>
+        <div class="field-value" style="font-weight:600;font-family:monospace">${m.hod_nr || '—'}</div>
       </div>
       <div class="field" style="background:#fff">
         <div class="field-label">Data wniosku</div>
         <div class="field-value">${m.hod_data || '—'}</div>
       </div>
+      ${finalPrice}
     </div>
     <div class="field-row">
       <div class="field full" style="background:#fff">
@@ -2753,7 +2967,9 @@ function renderHodSection(m, role) {
         <div class="field-value">${m.hod_komentarz || '—'}</div>
       </div>
     </div>
-    ${m.hod_odpowiedz_data ? `<div style="font-size:11px;color:var(--gray-500);margin-top:4px">Decyzja: ${m.hod_odpowiedz_data}</div>` : ''}
+    ${znizkiHtml}
+    ${m.hod_ag_komentarz ? `<div class="field-row"><div class="field full" style="background:#fff"><div class="field-label">Komentarz AG</div><div class="field-value">${m.hod_ag_komentarz}</div></div></div>` : ''}
+    ${m.hod_odpowiedz_data ? `<div style="font-size:11px;color:var(--gray-500);margin-top:4px">Decyzja AG: ${m.hod_odpowiedz_data}</div>` : ''}
   `;
 }
 
