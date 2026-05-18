@@ -671,15 +671,17 @@
     padding: 20px 20px 40px;
   }
   .contract-page {
-    background: #fff;
-    padding: 36px 48px 24px;
+    background: #fff url('papier_firmowy.png') no-repeat top left / 100% 100%;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    padding: 130px 68px 155px;
     margin-bottom: 16px;
     box-shadow: 0 2px 16px rgba(0,0,0,0.4);
     font-family: 'Times New Roman', serif;
     font-size: 11pt;
     line-height: 1.6;
     color: #000;
-    min-height: 1070px;
+    min-height: 1160px;
     display: flex;
     flex-direction: column;
   }
@@ -2296,7 +2298,7 @@ function _contractFtr() {
 }
 
 function _contractPage(content) {
-  return `<div class="contract-page" data-page>${_contractHdr()}<div style="flex:1">${content}</div>${_contractFtr()}</div>`;
+  return `<div class="contract-page" data-page><div style="flex:1">${content}</div></div>`;
 }
 
 function generateContract(id) {
@@ -2760,15 +2762,27 @@ function closeContract() {
 }
 function printContract() {
   const doc = document.getElementById('contractDoc').innerHTML;
+  const imgUrl = window.location.href.replace(/[^/]*$/, '') + 'papier_firmowy.png';
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><title>Umowa</title>
     <style>
-      @page { margin: 15mm 20mm }
+      @page { margin: 0; size: A4; }
       * { box-sizing: border-box; }
-      body { background: #fff; margin: 0; padding: 0; font-family: 'Times New Roman', serif; font-size: 11pt; color: #000; line-height: 1.6; }
-      .contract-page { padding: 0; margin: 0; min-height: auto; box-shadow: none; display: block; page-break-after: always; }
+      body { background: #fff; margin: 0; padding: 0; }
+      .contract-doc { background: transparent; width: 100%; padding: 0; margin: 0; }
+      .contract-page {
+        width: 210mm; height: 297mm;
+        display: block; overflow: hidden;
+        page-break-after: always;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        background: #fff url('${imgUrl}') no-repeat top left / 100% 100%;
+        padding: 37mm 20mm 44mm;
+        font-family: 'Times New Roman', serif;
+        font-size: 11pt; line-height: 1.6; color: #000;
+      }
       .contract-page:last-child { page-break-after: auto; }
-      p { margin: 0 0 10px; }
+      p { margin: 0 0 9pt; }
       table { border-collapse: collapse; }
     </style>
     </head><body>${doc}<script>window.onload=function(){window.print()}<\/script></body></html>`);
