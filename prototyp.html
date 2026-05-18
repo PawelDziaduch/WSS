@@ -665,15 +665,23 @@
   .contract-toolbar-title { font-weight: 600; font-size: 14px; }
   .contract-toolbar-spacer { flex: 1; }
   .contract-doc {
+    background: #777;
+    width: 820px; max-width: calc(100vw - 20px);
+    margin: 0 auto;
+    padding: 20px 20px 40px;
+  }
+  .contract-page {
     background: #fff;
-    width: 760px; max-width: calc(100vw - 40px);
-    margin: 24px auto 48px;
-    padding: 56px 64px;
-    box-shadow: 0 8px 48px rgba(0,0,0,0.4);
+    padding: 36px 48px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.4);
     font-family: 'Times New Roman', serif;
-    font-size: 12.5px;
-    line-height: 1.65;
-    color: #111;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #000;
+    min-height: 1070px;
+    display: flex;
+    flex-direction: column;
   }
 </style>
 </head>
@@ -2255,6 +2263,42 @@ function numberToWordsPL(n) {
   return r.trim();
 }
 
+function _contractHdr() {
+  return `<table style="width:100%;margin-bottom:8px;border-collapse:collapse"><tr>
+    <td style="font-family:Arial,sans-serif;font-weight:900;letter-spacing:1px;vertical-align:middle;font-size:20pt;line-height:1">
+      <span style="display:inline-block;border:2.5px solid #000;padding:1px 5px;margin-right:1px;line-height:1">W</span>ANICKI
+    </td>
+    <td style="text-align:right;font-family:Arial,sans-serif;font-size:9.5pt;vertical-align:middle;line-height:1.4">
+      <strong>Wanicki Serwis Sp. z o.o.</strong><br>ul. Myślenicka 19, 32-031 Mogilany
+    </td>
+  </tr></table>
+  <hr style="border:none;border-top:1.5px solid #000;margin:0 0 14px">`;
+}
+
+function _contractFtr() {
+  return `<div style="margin-top:auto;padding-top:7px;border-top:1px solid #aaa;display:flex;justify-content:space-between;align-items:center;font-family:Arial,sans-serif;font-size:7pt;color:#555;line-height:1.35">
+    <div>NIP: 944 211 18 82<br>REGON: 356900788 &nbsp;·&nbsp; Sąd Rejonowy dla Krakowa – Śródmieścia w Krakowie<br>XI Wydział Gospodarczy Krajowego Rejestru Sądowego &nbsp;·&nbsp; Wysokość kapitału zakładowego – 100.000,00</div>
+    <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:12px;font-size:7pt">
+      <span style="font-weight:900;text-align:center;line-height:1.1">JOHN<br>DEERE</span>
+      <span style="width:1px;height:18px;background:#bbb;display:inline-block"></span>
+      <span style="font-weight:800"><span style="border:1.5px solid currentColor;padding:0 2px">W</span> KRAMER</span>
+      <span style="width:1px;height:18px;background:#bbb;display:inline-block"></span>
+      <span style="font-weight:700">MONOSEM</span>
+      <span style="width:1px;height:18px;background:#bbb;display:inline-block"></span>
+      <span style="font-weight:900;border:1.5px solid currentColor;padding:0 3px">SIP</span>
+      <span style="width:1px;height:18px;background:#bbb;display:inline-block"></span>
+      <span style="font-weight:700;font-style:italic">BEDNAR</span>
+      <span style="width:1px;height:18px;background:#bbb;display:inline-block"></span>
+      <span style="font-weight:700"><span style="font-style:italic">Sa</span>MASZ</span>
+      <span style="margin-left:6px;font-weight:400">V 2.0</span>
+    </div>
+  </div>`;
+}
+
+function _contractPage(content) {
+  return `<div class="contract-page" data-page>${_contractHdr()}<div style="flex:1">${content}</div>${_contractFtr()}</div>`;
+}
+
 function generateContract(id) {
   const m = machines.find(x => x.id === id);
   if(!m.klient) { showToast('Najpierw przypisz klienta do maszyny'); return; }
@@ -2271,114 +2315,105 @@ function generateContract(id) {
   const priceWords = totalPrice ? numberToWordsPL(Math.round(totalPrice)) : '';
   const clientObj  = clients.find(c => c.nazwa === m.klient);
   const clientMiejsc = clientObj ? (clientObj.miejscowosc || '') : '';
-  const blank      = s => s || '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+  const _b = s => s ? `<strong>${s}</strong>` : '<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>';
+  const _d = s => s || '<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>';
+
+  const page1 = `
+    <h2 style="text-align:center;font-size:13pt;font-family:Arial,sans-serif;font-weight:bold;text-decoration:underline;margin:0 0 14px">UMOWA SPRZEDAŻY nr: ${nrUmowy}</h2>
+    <p style="margin:0 0 10px">Zawarta w <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> dnia ${today}, pomiędzy:</p>
+    <p style="margin:0 0 10px"><strong>I)</strong>&nbsp;Wanicki Serwis sp. z o.o. z siedzibą w Mogilanach, przy ul. Myślenickiej 19, 32-031 Mogilany, wpisaną do rejestru przedsiębiorców Krajowego Rejestru Sądowego przez Sąd Rejonowy dla Krakowa&nbsp;-&nbsp;Śródmieścia w Krakowie, XII Wydział Gospodarczy KRS pod nr 0000225703, z kapitałem zakładowym w wysokości 100.000,00&nbsp;PLN, NIP:&nbsp;944-211-18-82, reprezentowaną przez osobę wskazaną w miejscu przeznaczonym na złożenie podpisu pod niniejszą Umową, zwaną dalej „<strong>Sprzedającym</strong>", a</p>
+    <p style="margin:0 0 4px"><strong>II)</strong>&nbsp;Imie i Nazwisko: ${_b(m.klient)}&nbsp;&nbsp;Adres zamieszkania: ${_b(clientMiejsc)}&nbsp;,&nbsp;<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>, NIP/PESEL:&nbsp;${_b(m.nip)}, Email:&nbsp;<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u></p>
+    <p style="margin:0 0 4px">zwaną/ym dalej „<strong>Kupującym</strong>",</p>
+    <p style="margin:0 0 14px">każdą zwaną dalej z osobna „Stroną", a łącznie „Stronami".</p>
+    <p style="margin:0 0 6px"><strong>1)</strong>&nbsp;Na podstawie niniejszej umowy („<strong>Umowa</strong>"), Sprzedający zobowiązuje się przenieść na Kupującego własność i wydać Kupującemu następujące Maszyny (dalej jako Maszyny):</p>
+    <p style="margin:0 0 6px;padding-left:24px"><strong>a)</strong>&nbsp;${_b(m.model + (m.producent?' – '+m.producent:''))} w ilości <strong>1</strong> szt.</p>
+    <p style="margin:0 0 12px">Szczegółowa specyfikacja techniczna Maszyn wraz z zabudowami znajduje się w załączniku nr 2 do Umowy.</p>
+    <p style="margin:0 0 6px"><strong>2)</strong>&nbsp;Kupujący zobowiązuje się do zapłaty na rzecz Sprzedającego ceny sprzedaży w następującej kwocie/kwotach:</p>
+    <p style="margin:0 0 6px;padding-left:24px"><strong>a)</strong>&nbsp;za Maszynę wskazaną w pkt 1) a) w kwocie <strong>${totalPrice ? totalPrice.toLocaleString('pl-PL') : '<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>'}</strong> PLN netto</p>
+    <p style="margin:0 0 12px">Łączna kwota ceny sprzedaży za Maszyny wynosi <strong>${totalPrice ? totalPrice.toLocaleString('pl-PL') : '<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>'}</strong> PLN netto (słownie PLN:&nbsp;<strong>${priceWords || '<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>'}</strong>). Podana cena netto zostanie powiększona o kwotę należnego podatku VAT, o ile obowiązek jego zapłaty wynika z mających zastosowanie przepisów prawa.</p>
+    <p style="margin:0 0 10px"><strong>3)</strong>&nbsp;Kupujący zobowiązuje się do zapłaty ceny sprzedaży do dnia ${_d(m.data_realizacji)}.</p>
+    <p style="margin:0 0 10px"><strong>4)</strong>&nbsp;Kupujący zobowiązuje się do zapłaty zadatku w kwocie <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> PLN brutto (słownie PLN:&nbsp;<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>), w terminie do dnia <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>.</p>
+    <p style="margin:0 0 6px"><strong>5)</strong>&nbsp;Strony są zgodne, że zapłata będzie uznana za dokonaną zgodnie z postanowieniami Umowy tylko wówczas, gdy zostanie zapłacona w drodze przelewu na rachunek bankowy Sprzedającego w PKO BANK POLSKI S.A.</p>
+    <p style="margin:0 0 4px;padding-left:24px">Nr konta EURO:&nbsp;&nbsp;88 1020 2313 0000 3102 0481 9837<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SWIFT BPKOPLPW</p>
+    <p style="margin:0 0 12px;padding-left:24px">Nr konta PLN:&nbsp;&nbsp;&nbsp;&nbsp;36 1020 2313 0000 3102 0481 9803</p>
+    <p style="margin:0"><strong>6)</strong>&nbsp;W przypadku gdy kwota ceny lub jej części (w tym zadatku) została wyrażona w Umowie w walucie innej niż PLN, wówczas Kupujący jest uprawniony do dokonania zapłaty ceny wyłącznie w tej walucie, a w walucie PLN tylko za zgodą Sprzedającego. W takim wypadku, jeżeli Kupujący dokonuje zapłaty w walucie innej niż waluta, w której wyrażona została cena lub jej część, wówczas wartość waluty obcej określa się według kursu sprzedaży tej waluty w PKO BANK POLSKI S.A. z daty nabycia Pojazdu przez</p>`;
+
+  const page2 = `
+    <p style="margin:0 0 12px">Sprzedającego. W razie opóźnienia w zapłacie ceny lub jej części, Sprzedający może żądać zapłaty, według swego wyboru, według kursu sprzedaży PKO BANK POLSKI S.A. z daty nabycia Pojazdu przez Sprzedającego albo z daty płatności ceny określonej w pkt 3 Umowy, albo z daty rzeczywistej zapłaty ceny lub jej odpowiedniej części przez Kupującego.</p>
+    <p style="margin:0 0 10px"><strong>7)</strong>&nbsp;Maszyny zostaną wydane Kupującemu w terminie do ${_d(m.data_realizacji)}.</p>
+    <p style="margin:0 0 10px"><strong>8)</strong>&nbsp;Maszyny zostaną wydane Kupującemu w ${_b(m.magazyn)}.</p>
+    <p style="margin:0 0 10px"><strong>9)</strong>&nbsp;Do niniejszej Umowy znajduje zastosowanie Regulamin Sprzedaży, stanowiący załącznik nr 1 do Umowy, udostępniony na stronie internetowej www.wanicki.pl/agro. Przez zawarcie niniejszej Umowy Kupujący akceptuje treść Regulaminu Sprzedaży.</p>
+    <p style="margin:0 0 10px"><strong>10)</strong>&nbsp;Sądem właściwym do rozstrzygania sporów wynikających z Umowy lub pozostających z nią w związku jest sąd rzeczowo właściwy ze względu na siedzibę Sprzedającego.</p>
+    <p style="margin:0 0 6px"><strong>11)</strong>&nbsp;Załącznikami do Umowy są:</p>
+    <p style="margin:0 0 10px;padding-left:24px">1. Regulamin Sprzedaży;<br>2. Specyfikacje Maszyn<br>3. Zgoda na przesyłanie informacji handlowych</p>
+    <p style="margin:0 0 10px"><strong>12)</strong>&nbsp;Sprzedający oświadcza, że jest dużym przedsiębiorcą w rozumieniu ustawy o przeciwdziałaniu nadmiernym opóźnieniom w transakcjach handlowych (t.j. Dz.U. z 2019 r. poz. 118).</p>
+    <p style="margin:0 0 10px"><strong>13)</strong>&nbsp;Kupujący oświadcza, że zawarcie niniejszej umowy sprzedaży wchodzi w skład czynności o charakterze zawodowym dla Kupującego.</p>
+    <p style="margin:0 0 10px">Kupujący potwierdza otrzymanie na piśmie klauzuli informacyjnej dotyczącej przetwarzania danych osobowych przy pierwszym kontakcie z administratorem danych osobowych, tj. spółką Wanicki Serwis sp. z o.o.</p>
+    <p style="margin:0 0 18px">Sprzedawca informuje, że Maszyna, stanowiąca przedmiot niniejszej umowy może generować dane związane z jej użytkowaniem. Szczegółowe informacje dotyczące rodzaju gromadzonych danych, celów ich przetwarzania oraz sposobu realizacji praw Kupującego dostępne są pod adresem: https://deere.com/trust#euda.</p>
+    <p style="text-align:center;font-family:Arial,sans-serif;font-weight:bold;margin:20px 0">PODPISY STRON</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:28px">
+      <tr>
+        <td style="width:48%;padding-bottom:4px">Za Sprzedającego:</td>
+        <td style="width:4%"></td>
+        <td style="width:48%;padding-bottom:4px;text-align:right">Za Kupującego:</td>
+      </tr>
+      <tr>
+        <td style="border-bottom:1px solid #000;padding-top:56px;padding-bottom:4px"></td>
+        <td></td>
+        <td style="border-bottom:1px solid #000;padding-top:56px;padding-bottom:4px"></td>
+      </tr>
+      <tr>
+        <td style="font-size:9pt;padding-top:4px;color:#444;font-style:italic">${m.handlowiec||'Wybierz element.'}</td>
+        <td></td>
+        <td style="font-size:9pt;padding-top:4px;text-align:right">${m.klient||''}</td>
+      </tr>
+    </table>
+    <p style="margin:0 0 4px"><strong><u>Ustalenia dodatkowe:</u></strong></p>
+    <p style="margin:0 0 4px"><strong>Do umowy:</strong></p>
+    <div style="min-height:48px;border-bottom:1px solid #ccc;padding-bottom:4px">${m.komentarz||''}</div>`;
+
+  const page3 = `
+    <h3 style="text-align:center;font-family:Arial,sans-serif;font-size:11pt;font-weight:bold;margin:0 0 24px">ZAŁĄCZNIK NR 2<br>SPECYFIKACJA MASZYNY</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:11pt">
+      <tr><td style="padding:7px 10px;border:1px solid #ccc;background:#f5f5f5;width:40%;font-weight:bold">Model</td><td style="padding:7px 10px;border:1px solid #ccc">${m.model||''}</td></tr>
+      <tr><td style="padding:7px 10px;border:1px solid #ccc;background:#f5f5f5;font-weight:bold">Producent</td><td style="padding:7px 10px;border:1px solid #ccc">${m.producent||''}</td></tr>
+      <tr><td style="padding:7px 10px;border:1px solid #ccc;background:#f5f5f5;font-weight:bold">Rodzaj</td><td style="padding:7px 10px;border:1px solid #ccc">${m.rodzaj||''}</td></tr>
+      <tr><td style="padding:7px 10px;border:1px solid #ccc;background:#f5f5f5;font-weight:bold">Rok produkcji</td><td style="padding:7px 10px;border:1px solid #ccc">${m.rok_prod||''}</td></tr>
+      <tr><td style="padding:7px 10px;border:1px solid #ccc;background:#f5f5f5;font-weight:bold">Nr seryjny (VIN)</td><td style="padding:7px 10px;border:1px solid #ccc;font-family:monospace">${m.vin||''}</td></tr>
+      ${m.demo ? `<tr><td style="padding:7px 10px;border:1px solid #ccc;background:#f5f5f5;font-weight:bold">Uwaga</td><td style="padding:7px 10px;border:1px solid #ccc"><strong>Maszyna demonstracyjna</strong></td></tr>` : ''}
+      ${selected.map(o => `<tr><td style="padding:7px 10px;border:1px solid #ccc;background:#f5f5f5;font-weight:bold">${o.label}</td><td style="padding:7px 10px;border:1px solid #ccc">${o.cena.toLocaleString('pl-PL')} PLN</td></tr>`).join('')}
+    </table>`;
+
+  const page4 = `
+    <h3 style="text-align:center;font-family:Arial,sans-serif;font-size:11pt;font-weight:bold;margin:0 0 20px">ZAŁĄCZNIK NR 3<br>ZGODA NA PRZESYŁANIE INFORMACJI HANDLOWYCH ORAZ PRZETWARZANIE DANYCH OSOBOWYCH</h3>
+    <div style="text-align:right;margin-bottom:20px">Miejscowość/data <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u></div>
+    <div style="width:55%;border-bottom:1px solid #aaa;padding-top:36px;margin-bottom:4px"></div>
+    <div style="font-size:9pt;color:#555;margin-bottom:18px">imię i nazwisko</div>
+    <div style="width:55%;border-bottom:1px solid #aaa;padding-top:36px;margin-bottom:4px"></div>
+    <div style="font-size:9pt;color:#555;margin-bottom:18px">adres e-mail</div>
+    <div style="width:55%;border-bottom:1px solid #aaa;padding-top:36px;margin-bottom:4px"></div>
+    <div style="font-size:9pt;color:#555;margin-bottom:16px">numer telefonu</div>
+    <p style="margin:0 0 14px">W związku z zamiarem przetwarzania Pana/Pani danych osobowych przez spółki z Grupy Wanicki* w niżej wskazanych celach, prosimy o zaznaczenie znakiem X odpowiedniego okienka, czy wyraża bądź nie wyraża Pan/Pani zgody na takie przetwarzanie. Wyrażenie zgody na przetwarzanie jest dobrowolne i nie wpływa na realizację przez każdą ze Spółek pozostałych usług oraz obowiązków związanych z zawarciem i wykonywaniem umowy zawartej z odpowiednią Spółką (jeżeli taka została zawarta).</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px">
+      <tr style="background:#e0e0e0"><td style="padding:6px 12px;border:1px solid #bbb;font-weight:bold;width:50%">1)&nbsp; ☐ WYRAŻAM ZGODĘ</td><td style="padding:6px 12px;border:1px solid #bbb;font-weight:bold">☐ NIE WYRAŻAM ZGODY</td></tr>
+    </table>
+    <p style="margin:0 0 8px">na przesyłanie przez spółki z Grupy Wanicki* informacji handlowej (w tym m.in. oferty zawarcia umowy) skierowanej za pomocą środków komunikacji elektronicznej w celu promowania towarów, usług lub wizerunku każdej ze Spółek oraz na używanie telekomunikacyjnych urządzeń końcowych i automatycznych systemów wywołujących w celu komunikacji marketingowej dotyczącej produktów i usług oferowanych przez każdą ze Spółek.</p>
+    <p style="margin:0 0 16px;font-weight:bold">Dozwolone formy kontaktu: &nbsp;☐ SMS &nbsp;&nbsp;☐ E-MAIL &nbsp;&nbsp;☐ KONTAKT TELEFONICZNY</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px">
+      <tr style="background:#e0e0e0"><td style="padding:6px 12px;border:1px solid #bbb;font-weight:bold;width:50%">2)&nbsp; ☐ WYRAŻAM ZGODĘ</td><td style="padding:6px 12px;border:1px solid #bbb;font-weight:bold">☐ NIE WYRAŻAM ZGODY</td></tr>
+    </table>
+    <p style="margin:0 0 8px">na udostępnienie danych osobowych dotyczących mojej osoby przez spółki z Grupy Wanicki*, bezpośrednio nowym administratorom tj. podmiotom oferującym usługi finansowe lub ubezpieczeniowe oraz przesyłanie przez te podmioty informacji handlowej i podejmowanie komunikacji marketingowej dotyczącej produktów i usług świadczonych przez te podmioty (w tym m.in. przedstawienia oferty ubezpieczenia oraz obsługi umów ubezpieczenia, oferty finansowania).</p>
+    <p style="margin:0 0 16px;font-weight:bold">Dozwolone formy kontaktu: &nbsp;☐ SMS &nbsp;&nbsp;☐ E-MAIL &nbsp;&nbsp;☐ KONTAKT TELEFONICZNY</p>
+    <p style="margin:0 0 14px;font-size:10pt">Informacje, dotyczące przetwarzania Pani/Pana danych osobowych przez każdą ze Spółek jako osobnego administratora danych osobowych, o których mowa odpowiednio w art. 13 lub art. 14 Rozporządzenia Parlamentu Europejskiego i Rady (UE) 2016/679 z dnia 27 kwietnia 2016 r. w sprawie ochrony osób fizycznych w związku z przetwarzaniem danych osobowych i w sprawie swobodnego przepływu takich danych oraz uchylenia dyrektywy 95/46/WE (ogólne rozporządzenie o ochronie danych) z dnia 27 kwietnia 2016 r. znajdują się pod następującymi adresami: rodo.wanicki.pl/FirmaWanicki.htm; rodo.wanicki.pl/MWWanicki.htm; rodo.wanicki.pl/BWWanicki.htm; rodo.wanicki.pl/WanickiSerwis.htm; rodo.wanicki.pl/SWWanicki.htm; rodo.wanicki.pl/Nedpol.htm; rodo.wanicki.pl/WWWanicki.htm</p>
+    <p style="margin:0 0 32px;font-weight:bold">PODPIS: <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u></p>
+    <p style="font-size:7pt;color:#555;line-height:1.4">*przez Grupę Wanicki rozumie się następujące spółki: Firma Wanicki sp. z o.o. z siedzibą w Mogilanach, ul. Myślenicka 19, 32-031 Mogilany, KRS: 0000214618; Wanicki Serwis sp. z o.o. z siedzibą w Mogilanach, ul. Myślenicka 19, 32.-031 Mogilany, KRS: 0000225703, MW Wanicki sp. z o.o. z siedzibą w Mogilanach, ul. Myślenicka 19, 32.-031 Mogilany, KRS: 0000290954; BW Wanicki sp. z o.o. z siedzibą w Mogilanach, ul. Myślenicka 19, 32.-031 Mogilany, KRS: 0000277732; SW Wanicki sp. z o.o. z siedzibą w Mogilanach, ul. Myślenicka 19, 32.-031 Mogilany, KRS: 0000318232; Nedpol Truck Service sp. z o.o. z siedzibą w Romanowie, Romanów 10b, 42-260 Romanów, KRS: 0000062292; WW Wanicki sp. z o.o. z siedzibą w Trzcianie, Trzciana 162, 36-071 Trzciana, KRS: 0000214811.</p>`;
 
   document.getElementById('contractTitle').textContent = 'Umowa Sprzedaży ' + nrUmowy;
-  document.getElementById('contractDoc').innerHTML = `
-    <div style="font-family:'Times New Roman',serif;font-size:11pt;line-height:1.6;color:#000;max-width:700px;margin:0 auto">
-
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-        <div style="font-size:20pt;font-weight:900;font-family:Arial,sans-serif;letter-spacing:1px">WANICKI</div>
-        <div style="text-align:right;font-size:9pt;color:#444;line-height:1.4">
-          Wanicki Serwis Sp. z o.o.<br>ul. Myślenicka 19, 32-031 Mogilany
-        </div>
-      </div>
-      <hr style="border:none;border-top:2px solid #000;margin-bottom:20px">
-
-      <h2 style="text-align:center;font-size:14pt;font-family:Arial,sans-serif;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">
-        UMOWA SPRZEDAŻY nr: ${nrUmowy}
-      </h2>
-
-      <p>Zawarta w <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> dnia ${today}, pomiędzy:</p>
-
-      <p><strong>I)</strong> Wanicki Serwis sp. z o.o. z siedzibą w Mogilanach, przy ul. Myślenickiej 19, 32-031 Mogilany, wpisaną do rejestru przedsiębiorców Krajowego Rejestru Sądowego przez Sąd Rejonowy dla Krakowa&nbsp;- Śródmieścia w Krakowie, XII Wydział Gospodarczy KRS pod nr 0000225703, z kapitałem zakładowym w wysokości 100.000,00&nbsp;PLN, NIP:&nbsp;944-211-18-82, reprezentowaną przez osobę wskazaną w miejscu przeznaczonym na złożenie podpisu pod niniejszą Umową, zwaną dalej „<strong>Sprzedającym</strong>", a</p>
-
-      <p><strong>II)</strong> Imię i Nazwisko: <strong>${m.klient||''}</strong></p>
-      <p>Adres zamieszkania: ${blank(clientMiejsc)}, NIP/PESEL:&nbsp;${blank(m.nip)}, Email: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
-      <p>zwaną/ym dalej „<strong>Kupującym</strong>",</p>
-      <p>każdą zwaną dalej z osobna „Stroną", a łącznie „Stronami".</p>
-
-      <p><strong>1)</strong> Na podstawie niniejszej umowy („<strong>Umowa</strong>"), Sprzedający zobowiązuje się przenieść na Kupującego własność i wydać Kupującemu następujące Maszyny (dalej jako Maszyny):</p>
-      <p style="padding-left:28px"><strong>a)</strong>&nbsp;<strong>${m.model}${m.producent?' – '+m.producent:''}</strong> w ilości <strong>1</strong> szt.</p>
-      <p>Szczegółowa specyfikacja techniczna Maszyn wraz z zabudowami znajduje się w załączniku nr 2 do Umowy.</p>
-
-      <p><strong>2)</strong> Kupujący zobowiązuje się do zapłaty na rzecz Sprzedającego ceny sprzedaży w następującej kwocie/kwotach:</p>
-      <p style="padding-left:28px"><strong>a)</strong> za Maszynę wskazaną w pkt 1) a) w kwocie <strong>${totalPrice ? totalPrice.toLocaleString('pl-PL') : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</strong> PLN netto</p>
-      <p>Łączna kwota ceny sprzedaży za Maszyny wynosi <strong>${totalPrice ? totalPrice.toLocaleString('pl-PL') : ''}</strong> PLN netto (słownie PLN: <strong>${priceWords}</strong>). Podana cena netto zostanie powiększona o kwotę należnego podatku VAT, o ile obowiązek jego zapłaty wynika z mających zastosowanie przepisów prawa.</p>
-
-      <p><strong>3)</strong> Kupujący zobowiązuje się do zapłaty ceny sprzedaży do dnia ${blank(m.data_realizacji)}.</p>
-
-      <p><strong>4)</strong> Kupujący zobowiązuje się do zapłaty zadatku w kwocie &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PLN brutto (słownie PLN: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;), w terminie do dnia &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</p>
-
-      <p><strong>5)</strong> Strony są zgodne, że zapłata będzie uznana za dokonaną zgodnie z postanowieniami Umowy tylko wówczas, gdy zostanie zapłacona w drodze przelewu na rachunek bankowy Sprzedającego w PKO BANK POLSKI S.A.</p>
-      <p style="padding-left:28px">Nr konta EURO: 88 1020 2313 0000 3102 0481 9837<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SWIFT BPKOPLPW</p>
-      <p style="padding-left:28px">Nr konta PLN: &nbsp;36 1020 2313 0000 3102 0481 9803</p>
-
-      <p><strong>6)</strong> W przypadku gdy kwota ceny lub jej części (w tym zadatku) została wyrażona w Umowie w walucie innej niż PLN, wówczas Kupujący jest uprawniony do dokonania zapłaty ceny wyłącznie w tej walucie, a w walucie PLN tylko za zgodą Sprzedającego. W takim wypadku, jeżeli Kupujący dokonuje zapłaty w walucie innej niż waluta, w której wyrażona została cena lub jej część, wówczas wartość waluty obcej określa się według kursu sprzedaży tej waluty w PKO BANK POLSKI S.A. z daty nabycia Pojazdu przez Sprzedającego. W razie opóźnienia w zapłacie ceny lub jej części, Sprzedający może żądać zapłaty, według swego wyboru, według kursu sprzedaży PKO BANK POLSKI S.A. z daty nabycia Pojazdu przez Sprzedającego albo z daty płatności ceny określonej w pkt 3 Umowy, albo z daty rzeczywistej zapłaty ceny lub jej odpowiedniej części przez Kupującego.</p>
-
-      <p><strong>7)</strong> Maszyny zostaną wydane Kupującemu w terminie do ${blank(m.data_realizacji)}.</p>
-
-      <p><strong>8)</strong> Maszyny zostaną wydane Kupującemu w ${blank(m.magazyn)}.</p>
-
-      <p><strong>9)</strong> Do niniejszej Umowy znajduje zastosowanie Regulamin Sprzedaży, stanowiący załącznik nr 1 do Umowy, udostępniony na stronie internetowej www.wanicki.pl/agro. Przez zawarcie niniejszej Umowy Kupujący akceptuje treść Regulaminu Sprzedaży.</p>
-
-      <p><strong>10)</strong> Sądem właściwym do rozstrzygania sporów wynikających z Umowy lub pozostających z nią w związku jest sąd rzeczowo właściwy ze względu na siedzibę Sprzedającego.</p>
-
-      <p><strong>11)</strong> Załącznikami do Umowy są:</p>
-      <p style="padding-left:28px">1. Regulamin Sprzedaży;<br>2. Specyfikacje Maszyn<br>3. Zgoda na przesyłanie informacji handlowych</p>
-
-      <p><strong>12)</strong> Sprzedający oświadcza, że jest dużym przedsiębiorcą w rozumieniu ustawy o przeciwdziałaniu nadmiernym opóźnieniom w transakcjach handlowych (t.j. Dz.U. z 2019 r. poz. 118).</p>
-
-      <p><strong>13)</strong> Kupujący oświadcza, że zawarcie niniejszej umowy sprzedaży wchodzi w skład czynności o charakterze zawodowym dla Kupującego.</p>
-
-      <p>Kupujący potwierdza otrzymanie na piśmie klauzuli informacyjnej dotyczącej przetwarzania danych osobowych przy pierwszym kontakcie z administratorem danych osobowych, tj. spółką Wanicki Serwis sp. z o.o.</p>
-
-      <p>Sprzedawca informuje, że Maszyna, stanowiąca przedmiot niniejszej umowy może generować dane związane z jej użytkowaniem. Szczegółowe informacje dotyczące rodzaju gromadzonych danych, celów ich przetwarzania oraz sposobu realizacji praw Kupującego dostępne są pod adresem: https://deere.com/trust#euda.</p>
-
-      <h3 style="text-align:center;font-family:Arial,sans-serif;margin-top:32px;margin-bottom:32px">PODPISY STRON</h3>
-
-      <div style="display:flex;justify-content:space-between;margin-bottom:48px">
-        <div style="width:42%">
-          <div style="margin-bottom:4px">Za Sprzedającego:</div>
-          <div style="border-bottom:1px solid #000;margin-top:64px;margin-bottom:6px"></div>
-          <div style="font-size:9pt">Wanicki Serwis Sp. z o.o.</div>
-        </div>
-        <div style="width:42%;text-align:right">
-          <div style="margin-bottom:4px">Za Kupującego:</div>
-          <div style="border-bottom:1px solid #000;margin-top:64px;margin-bottom:6px"></div>
-          <div style="font-size:9pt">${m.klient||''}</div>
-        </div>
-      </div>
-
-      <p><strong><u>Ustalenia dodatkowe:</u></strong></p>
-      <p><strong>Do umowy:</strong></p>
-      <div style="min-height:60px;border-bottom:1px solid #ccc;padding-bottom:8px">${m.komentarz||''}</div>
-
-      <!-- Załącznik nr 2 -->
-      <div style="margin-top:60px;padding-top:20px;border-top:3px solid #000">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-          <div style="font-size:18pt;font-weight:900;font-family:Arial,sans-serif;letter-spacing:1px">WANICKI</div>
-          <div style="text-align:right;font-size:9pt;color:#444;line-height:1.4">
-            Wanicki Serwis Sp. z o.o.<br>ul. Myślenicka 19, 32-031 Mogilany
-          </div>
-        </div>
-        <h3 style="text-align:center;font-family:Arial,sans-serif;margin-bottom:24px">ZAŁĄCZNIK NR 2<br>SPECYFIKACJA MASZYNY</h3>
-        <table style="width:100%;border-collapse:collapse;font-size:11pt">
-          <tr><td style="padding:7px 10px;border:1px solid #ccc;font-weight:bold;background:#f8f8f8;width:40%">Model</td><td style="padding:7px 10px;border:1px solid #ccc">${m.model||'—'}</td></tr>
-          <tr><td style="padding:7px 10px;border:1px solid #ccc;font-weight:bold;background:#f8f8f8">Producent</td><td style="padding:7px 10px;border:1px solid #ccc">${m.producent||'—'}</td></tr>
-          <tr><td style="padding:7px 10px;border:1px solid #ccc;font-weight:bold;background:#f8f8f8">Rodzaj</td><td style="padding:7px 10px;border:1px solid #ccc">${m.rodzaj||'—'}</td></tr>
-          <tr><td style="padding:7px 10px;border:1px solid #ccc;font-weight:bold;background:#f8f8f8">Rok produkcji</td><td style="padding:7px 10px;border:1px solid #ccc">${m.rok_prod||'—'}</td></tr>
-          <tr><td style="padding:7px 10px;border:1px solid #ccc;font-weight:bold;background:#f8f8f8">Nr seryjny (VIN)</td><td style="padding:7px 10px;border:1px solid #ccc;font-family:monospace">${m.vin||'—'}</td></tr>
-          ${m.demo ? '<tr><td style="padding:7px 10px;border:1px solid #ccc;font-weight:bold;background:#f8f8f8">Uwaga</td><td style="padding:7px 10px;border:1px solid #ccc"><strong>Maszyna demonstracyjna</strong></td></tr>' : ''}
-          ${selected.map(o => `<tr><td style="padding:7px 10px;border:1px solid #ccc;font-weight:bold;background:#f8f8f8">${o.label}</td><td style="padding:7px 10px;border:1px solid #ccc">${o.cena.toLocaleString('pl-PL')} PLN</td></tr>`).join('')}
-        </table>
-        <div style="margin-top:48px;font-size:9pt;color:#666;text-align:center">
-          NIP: 944-211-18-82 &nbsp;·&nbsp; REGON: 356900788 &nbsp;·&nbsp; KRS: 0000225703 &nbsp;·&nbsp; Wysokość kapitału zakładowego – 100.000,00 PLN
-        </div>
-      </div>
-
-    </div>
-  `;
+  document.getElementById('contractDoc').innerHTML =
+    _contractPage(page1) +
+    _contractPage(page2) +
+    _contractPage(page3) +
+    _contractPage(page4);
   document.getElementById('contractOverlay').classList.add('open');
 }
 
@@ -2388,37 +2423,29 @@ function generateProtocol(id) {
   const nrProtokolu = 'PROT/' + new Date().getFullYear() + '/' + String(id).padStart(3,'0');
   const today = new Date().toLocaleDateString('pl-PL');
   document.getElementById('contractTitle').textContent = 'Protokół wydania ' + nrProtokolu;
-  document.getElementById('contractDoc').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:18px;margin-bottom:24px">
-      <div>
-        <div style="font-size:22pt;font-weight:bold;font-family:Arial,sans-serif;letter-spacing:-0.5px">Wanicki <span style="font-weight:300">AGRO</span></div>
-        <div style="font-size:9.5pt;color:#555;margin-top:4px">Wanicki Sp. z o. o. · ul. Przykładowa 1 · 43-300 Bielsko-Biała<br>NIP: 547-000-00-00 · tel. +48 33 000 00 00 · wanicki.pl</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:13pt;font-weight:bold">${nrProtokolu}</div>
-        <div style="font-size:10pt;color:#555">Data: ${today}</div>
-      </div>
-    </div>
-    <h2 style="text-align:center;font-size:14pt;text-transform:uppercase;letter-spacing:1px;margin-bottom:24px">Protokół wydania maszyny</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">
-      <div>
-        <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Sprzedawca</div>
-        <table style="font-size:11pt;width:100%">
-          <tr><td style="color:#555;padding:2px 8px 2px 0;width:90px">Firma:</td><td><b>Wanicki Sp. z o. o.</b></td></tr>
-          <tr><td style="color:#555;padding:2px 8px 2px 0">NIP:</td><td>547-000-00-00</td></tr>
-          <tr><td style="color:#555;padding:2px 8px 2px 0">Adres:</td><td>ul. Przykładowa 1, 43-300 Bielsko-Biała</td></tr>
-          <tr><td style="color:#555;padding:2px 8px 2px 0">Serwis:</td><td>${m.handlowiec || '—'}</td></tr>
-        </table>
-      </div>
-      <div>
-        <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Odbiorca</div>
-        <table style="font-size:11pt;width:100%">
-          <tr><td style="color:#555;padding:2px 8px 2px 0;width:90px">Firma/Osoba:</td><td><b>${m.klient||'—'}</b></td></tr>
-          <tr><td style="color:#555;padding:2px 8px 2px 0">NIP:</td><td>${m.nip||'—'}</td></tr>
-          <tr><td style="color:#555;padding:2px 8px 2px 0">Adres:</td><td>—</td></tr>
-        </table>
-      </div>
-    </div>
+  document.getElementById('contractDoc').innerHTML = _contractPage(`
+    <h2 style="text-align:center;font-size:13pt;font-family:Arial,sans-serif;text-transform:uppercase;font-weight:bold;margin:0 0 20px">Protokół wydania maszyny</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
+      <tr>
+        <td style="width:48%;vertical-align:top">
+          <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Sprzedawca</div>
+          <table style="font-size:11pt;width:100%">
+            <tr><td style="color:#555;padding:2px 8px 2px 0;width:70px">Firma:</td><td><b>Wanicki Serwis Sp. z o.o.</b></td></tr>
+            <tr><td style="color:#555;padding:2px 8px 2px 0">NIP:</td><td>944-211-18-82</td></tr>
+            <tr><td style="color:#555;padding:2px 8px 2px 0">Adres:</td><td>ul. Myślenicka 19, 32-031 Mogilany</td></tr>
+            <tr><td style="color:#555;padding:2px 8px 2px 0">Serwis:</td><td>${m.handlowiec || '—'}</td></tr>
+          </table>
+        </td>
+        <td style="width:4%"></td>
+        <td style="width:48%;vertical-align:top">
+          <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Odbiorca</div>
+          <table style="font-size:11pt;width:100%">
+            <tr><td style="color:#555;padding:2px 8px 2px 0;width:70px">Firma/Osoba:</td><td><b>${m.klient||'—'}</b></td></tr>
+            <tr><td style="color:#555;padding:2px 8px 2px 0">NIP:</td><td>${m.nip||'—'}</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
     <div style="margin-bottom:18px">
       <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Wydanie maszyny</div>
       <table style="font-size:11pt;width:100%">
@@ -2436,11 +2463,19 @@ function generateProtocol(id) {
       <div style="font-size:9pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:8px">Uwagi serwisowe</div>
       <p style="font-size:11pt;min-height:30px">${m.komentarz || 'Brak dodatkowych uwag.'}</p>
     </div>
-    <div style="display:flex;gap:60px;margin-top:52px">
-      <div style="flex:1"><div style="border-bottom:1px solid #000;margin-bottom:6px;margin-top:44px"></div><div style="font-size:9pt;color:#555">Serwis (podpis)<br><b>${m.handlowiec||'Serwis'}</b></div></div>
-      <div style="flex:1"><div style="border-bottom:1px solid #000;margin-bottom:6px;margin-top:44px"></div><div style="font-size:9pt;color:#555">Odbiorca (podpis)<br><b>${m.klient||'Klient'}</b></div></div>
-    </div>
-  `;
+    <table style="width:100%;border-collapse:collapse;margin-top:52px">
+      <tr>
+        <td style="width:48%;border-bottom:1px solid #000;padding-top:56px;padding-bottom:4px"></td>
+        <td style="width:4%"></td>
+        <td style="width:48%;border-bottom:1px solid #000;padding-top:56px;padding-bottom:4px"></td>
+      </tr>
+      <tr>
+        <td style="font-size:9pt;color:#555;padding-top:4px">Serwis (podpis)<br><b>${m.handlowiec||'Serwis'}</b></td>
+        <td></td>
+        <td style="font-size:9pt;color:#555;padding-top:4px">Odbiorca (podpis)<br><b>${m.klient||'Klient'}</b></td>
+      </tr>
+    </table>
+  `);
   if(m.status !== 'Umowa - wydane') {
     m.status = 'Umowa - wydane';
     documents.push({ id: documents.length + 1, numer: nrProtokolu, typ: 'Protokół', klient: m.klient || '—', maszyna: m.model, data: new Date().toISOString().split('T')[0], status: 'Podpisany' });
@@ -2727,7 +2762,15 @@ function printContract() {
   const doc = document.getElementById('contractDoc').innerHTML;
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><title>Umowa</title>
-    <style>@page{margin:20mm}body{font-family:'Times New Roman',serif;font-size:12pt;color:#000;line-height:1.65}*{box-sizing:border-box}</style>
+    <style>
+      @page { margin: 15mm 20mm }
+      * { box-sizing: border-box; }
+      body { background: #fff; margin: 0; padding: 0; font-family: 'Times New Roman', serif; font-size: 11pt; color: #000; line-height: 1.6; }
+      .contract-page { padding: 0; margin: 0; min-height: auto; box-shadow: none; display: block; page-break-after: always; }
+      .contract-page:last-child { page-break-after: auto; }
+      p { margin: 0 0 10px; }
+      table { border-collapse: collapse; }
+    </style>
     </head><body>${doc}<script>window.onload=function(){window.print()}<\/script></body></html>`);
   w.document.close();
 }
