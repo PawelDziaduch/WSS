@@ -1857,12 +1857,7 @@ function getActions(m) {
     }
     btns += `<button class="btn-sm" onclick="openConfigModal(${m.id})">Konfiguruj maszynę</button>`;
     if(m.klient && m.status === 'Dostępna') {
-      const mg = calcMargin(m);
-      if(mg === null || mg < 6) {
-        btns += `<button class="btn-sm orange" onclick="sendToRKS(${m.id})">Wyślij ofertę do RKS</button>`;
-      } else {
-        btns += `<button class="btn-sm primary" onclick="changeStatus(${m.id},'Rezerwacja')">Zarezerwuj</button>`;
-      }
+      btns += `<button class="btn-sm orange" onclick="sendToRKS(${m.id})">Wyślij ofertę do RKS</button>`;
     }
     if(m.klient) {
       btns += `<button class="btn-sm blue" onclick="generateContract(${m.id})">Podgląd oferty</button>`;
@@ -2236,11 +2231,10 @@ function saveReservation() {
   m.rezerwacja_klient = m.rezerwacja_klient || m.klient || '';
   m.rezerwacja_handlowiec = m.rezerwacja_handlowiec || m.handlowiec || '';
   m.reserve_comment = comment;
-  if(m.status !== 'Rezerwacja') m.status = 'Rezerwacja';
   closeReserveModal();
   renderTable();
   if(selectedId === reserveTargetId) renderPanel(m, activeTab);
-  showToast('Rezerwacja maszyny zapisana', 'green');
+  showToast('Link CRM i termin zapisane – teraz wyślij ofertę do RKS', 'green');
 }
 function showRowPreview(event, id) {
   const preview = document.getElementById('rowHoverPreview');
