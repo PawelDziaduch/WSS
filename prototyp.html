@@ -1399,10 +1399,10 @@ const machines = [
     const raw = localStorage.getItem('wss_data');
     if (!raw) return;
     const d = JSON.parse(raw);
-    if (d.machines && machines.length === 0) machines.push(...d.machines);
-    if (d.clients)   clients.push(...d.clients);
-    if (d.documents) documents.push(...d.documents);
-    if (d.users)     users.push(...d.users);
+    if (d.machines  && machines.length === 0)   machines.push(...d.machines);
+    if (d.clients   && d.clients.length > 0)  { clients.length   = 0; clients.push(...d.clients); }
+    if (d.documents && d.documents.length > 0){ documents.length = 0; documents.push(...d.documents); }
+    if (d.users     && d.users.length > 0)    { users.length     = 0; users.push(...d.users); }
   } catch(e) {}
 })();
 
