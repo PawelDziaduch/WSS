@@ -1859,7 +1859,7 @@ function getActions(m) {
     if(m.klient && m.status === 'Dostępna') {
       btns += `<button class="btn-sm orange" onclick="sendToRKS(${m.id})">Wyślij ofertę do RKS</button>`;
     }
-    if(m.cena_rks_final) {
+    if(m.klient && m.status !== 'Dostępna' && m.status !== 'Oferta') {
       btns += `<button class="btn-sm blue" onclick="generateContract(${m.id})">Podgląd oferty</button>`;
     }
     if(m.status === 'Oferta') {
