@@ -801,6 +801,7 @@
     </div>
     <div class="panel-tabs">
       <div class="panel-tab active" onclick="switchTab('dane', this)">Dane</div>
+      <div class="panel-tab" id="tabOferta" onclick="switchTab('oferta', this)">Oferta</div>
       <div class="panel-tab" onclick="switchTab('proces', this)">Proces</div>
       <div class="panel-tab" onclick="switchTab('doposazenie', this)">Doposażenie</div>
       <div class="panel-tab" onclick="switchTab('finansowe', this)">Finansowe</div>
@@ -1659,6 +1660,14 @@ function renderPanel(m, tab) {
   const role = currentRole;
   const fin = seeFinancials[role];
 
+  // Podświetl zakładkę "Oferta" gdy trwa proces cenowy
+  const ofertaTab = document.getElementById('tabOferta');
+  if(ofertaTab) {
+    const hasOfertaActivity = m.status === 'Oferta' || m.hod_status === 'pending';
+    ofertaTab.style.fontWeight = hasOfertaActivity ? '700' : '';
+    ofertaTab.style.color = hasOfertaActivity ? 'var(--orange)' : '';
+  }
+
   if(tab==='dane') {
     body.innerHTML = `
       ${m.notatka_odrzucenia ? `
@@ -1708,29 +1717,87 @@ function renderPanel(m, tab) {
           <div class="field"><div class="field-label">Faktura JD</div><div class="field-value">${m.faktura||'—'}</div></div>
         </div>
       </div>
-      ${role==='Handlowiec' ? `
-      <div class="panel-section" style="border:2px solid var(--green-pale);border-radius:8px;padding:12px;background:var(--green-pale)">
-        <div class="panel-section-title" style="color:var(--green)">Wycena handlowca</div>
-        <div class="field-row">
-          <div class="field" style="background:#fff">
-            <div class="field-label">Proponowana cena</div>
-            <div class="field-value ${m.cena_oferta?'highlight':'muted'}">${m.cena_oferta ? m.cena_oferta.toLocaleString('pl-PL')+' PLN' : 'nie ustawiono'}</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:flex-end;margin-top:8px">
-          <div style="flex:1">
-            <div class="field-label" style="margin-bottom:4px">Nowa proponowana cena (PLN)</div>
-            <input type="number" class="form-input" id="inputCenaOferta"
-              value="${m.cena_oferta||''}"
-              placeholder="${m.cena ? m.cena.toLocaleString('pl-PL') : '0'}"
-              min="0" step="1000"
-              oninput="calcPropDiscount(${m.cena||0},${m.zakup||0})"
-              style="background:#fff">
-          </div>
-          <button class="btn primary" onclick="savePropPrice(${m.id})" style="height:36px;white-space:nowrap">Zapisz cenę</button>
-        </div>
-      </div>` : ''}
     `;
+  }
+  else if(tab==='oferta') {
+    const isOfertaStatus = m.status === 'Oferta';
+    const isPending      = m.status === 'Dostępna' || isOfertaStatus;
+    const isApproved     = m.cena_rks_final || (!isPending && m.status !== 'Dostępna');
+
+    // ── Blok statusu oferty ──
+    let statusBanner = '';
+    if(m.status === 'Dostępna' && !m.cena_oferta) {
+      statusBanner = `<div style="background:var(--gray-100);border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--gray-500)">Handlowiec nie wpisał jeszcze ceny.</div>`;
+    } else if(isOfertaStatus) {
+      statusBanner = `<div style="background:#fffbeb;border:1px solid var(--orange);border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">⏳</span>
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--orange)">Oczekuje na akceptację RKS</div>
+          <div style="font-size:12px;color:var(--gray-600);margin-top:2px">Proponowana cena: <strong>${m.cena_oferta ? Number(m.cena_oferta).toLocaleString('pl-PL')+' PLN' : '—'}</strong></div>
+        </div>
+      </div>`;
+    } else if(m.cena_rks_final) {
+      const akcja = m.rks_akcja === 'hod' ? ' (z HoD ' + (m.hod_nr||'') + ')' : m.rks_akcja === 'change' ? ' (zmieniona przez RKS)' : '';
+      statusBanner = `<div style="background:var(--green-pale,#f0fdf4);border:1px solid var(--green);border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">✔</span>
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--green)">Cena zaakceptowana${akcja}</div>
+          <div style="font-size:12px;color:var(--gray-600);margin-top:2px">Zatwierdzona cena: <strong>${m.cena_rks_final.toLocaleString('pl-PL')} PLN</strong></div>
+        </div>
+      </div>`;
+    }
+
+    // ── Formularz ceny (tylko Handlowiec, gdy status Dostępna) ──
+    let priceForm = '';
+    if(role === 'Handlowiec' && m.status === 'Dostępna') {
+      const margin = calcMargin(m);
+      const marginHtml = margin !== null ? `<div style="font-size:11px;color:${margin<6?'var(--red)':'var(--green)'};margin-top:4px">Marża: ${margin.toFixed(1)}%</div>` : '';
+      priceForm = `
+        <div class="panel-section" style="border:2px solid var(--green);border-radius:8px;padding:14px;background:var(--green-pale)">
+          <div class="panel-section-title" style="color:var(--green)">Proponowana cena sprzedaży</div>
+          <div style="display:flex;gap:10px;align-items:flex-end;margin-top:4px">
+            <div style="flex:1">
+              <div class="field-label" style="margin-bottom:4px">Cena netto (PLN)</div>
+              <input type="number" class="form-input" id="inputCenaOferta"
+                value="${m.cena_oferta||''}"
+                placeholder="${m.zakup ? Math.round(m.zakup*1.08).toLocaleString('pl-PL') : '0'}"
+                min="0" step="1000" style="background:#fff"
+                oninput="calcPropDiscount(${m.cena||0},${m.zakup||0})">
+              ${marginHtml}
+            </div>
+            <button class="btn primary" onclick="submitOfertaToRks(${m.id})" style="height:36px;white-space:nowrap">Zatwierdź i wyślij do RKS</button>
+          </div>
+        </div>`;
+    }
+
+    // ── Akcje RKS ──
+    let rksActions = '';
+    if(role === 'RKS' && isOfertaStatus) {
+      rksActions = `
+        <div class="panel-section">
+          <div class="panel-section-title">Decyzja RKS</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn primary" onclick="rksAccept(${m.id})">✓ Zaakceptuj cenę</button>
+            <button class="btn" onclick="openRksPriceModal(${m.id})" style="color:var(--blue);border-color:var(--blue)">✎ Zmień cenę</button>
+            <button class="btn" onclick="rksReject(${m.id})" style="color:var(--red);border-color:var(--red)">✕ Odrzuć ofertę</button>
+            ${(!m.hod_status || m.hod_status==='rejected') ? `<button class="btn" onclick="openHodModal(${m.id})" style="color:var(--purple);border-color:var(--purple)">Wnioskuj o HoD</button>` : ''}
+            ${m.hod_status==='approved' ? `<button class="btn primary" onclick="applyHodAndSend(${m.id})">✓ Zastosuj HoD i wyślij do handlowca</button>` : ''}
+          </div>
+        </div>`;
+    }
+
+    // ── Sekcja HoD ──
+    const hodHtml = (m.hod_status || role === 'RKS') ? `
+      <div class="panel-section">
+        <div class="panel-section-title">Help on Deal (HoD)</div>
+        ${renderHodSection(m, role)}
+        ${m.hod_status==='pending' && role==='AG' ? `<div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn primary" onclick="openHodAGModal(${m.id})" style="background:var(--purple);border-color:var(--purple)">✓ Rozpatrz HoD${m.hod_nr?' · '+m.hod_nr:''}</button>
+          <button class="btn" onclick="rejectHod(${m.id})" style="color:var(--red);border-color:var(--red)">✕ Odrzuć HoD</button>
+        </div>` : ''}
+      </div>` : '';
+
+    body.innerHTML = statusBanner + priceForm + rksActions + hodHtml;
   }
   else if(tab==='proces') {
     const stepIdx = statuses.indexOf(m.status);
@@ -2556,9 +2623,19 @@ function savePropPrice(id) {
   if(!val || val <= 0) { showToast('Wpisz prawidłową cenę'); return; }
   m.cena_oferta = Math.round(val);
   if(m.cena) m.rabat = parseFloat(((1 - val / m.cena) * 100).toFixed(1));
-  const margin = calcMargin(m);
   renderPanel(m, activeTab);
   showToast('Cena zapisana: ' + m.cena_oferta.toLocaleString('pl-PL') + ' PLN', 'green');
+}
+
+function submitOfertaToRks(id) {
+  const m   = machines.find(x => x.id === id);
+  const val = parseFloat(document.getElementById('inputCenaOferta').value);
+  if(!val || val <= 0) { showToast('Wpisz proponowaną cenę sprzedaży'); return; }
+  m.cena_oferta = Math.round(val);
+  if(m.cena) m.rabat = parseFloat(((1 - val / m.cena) * 100).toFixed(1));
+  m.status = 'Oferta';
+  renderStepper(); renderStats(); renderTable(); renderPanel(m, 'oferta');
+  showToast('Oferta wysłana do RKS – oczekuje na akceptację ceny', 'green');
 }
 
 function sendToRKS(id) {
@@ -3865,50 +3942,29 @@ function renderWiz() {
       <button class="btn primary" onclick="wizStep3Prepare()">Dalej: Dokumenty →</button>`;
   }
 
-  // ── Krok 4: Dokumenty ──
+  // ── Krok 4: Oczekiwanie na RKS ──
   else if(wiz.step === 4) {
     const m = machines.find(x => x.id === wiz.machineId);
-    const klient = wiz.isNewClient ? wiz.newClientData.nazwa : (clients.find(c=>c.id===wiz.clientId)||{}).nazwa||'—';
-    const hasAll = wiz.crmLink.trim() && wiz.scanFile;
+    const klient = (clients.find(c=>c.id===wiz.clientId)||{}).nazwa||'—';
     body.innerHTML = `
-      <h2 style="font-size:15px;font-weight:700;margin-bottom:16px">Dokumenty do umowy</h2>
-      <div class="sum-box" style="margin-bottom:16px">
-        <div class="sum-box-title">Podsumowanie oferty</div>
-        <div class="sum-box-main">${m.model}</div>
-        <div class="sum-box-sub">${klient}${wiz.cenaOferta?' · '+wiz.cenaOferta.toLocaleString('pl-PL')+' PLN':''}</div>
-      </div>
-      <div style="border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:14px">
-        <div style="font-weight:700;font-size:13px;margin-bottom:6px">1. Wygeneruj i wydrukuj umowę</div>
-        <p style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Wydrukuj, podpisz z klientem i zeskanuj podpisaną kopię.</p>
-        <button class="btn" style="justify-content:center;padding:10px 16px" onclick="generateContract(${m.id})">
-          🖨 Generuj umowę do podpisania
-        </button>
-      </div>
-      <div style="border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:14px">
-        <div style="font-weight:700;font-size:13px;margin-bottom:6px">2. Link do wygranej szansy w CRM <span style="color:var(--red)">*</span></div>
-        <input type="url" class="form-input" id="wizCrmLink" value="${escapeHtml(wiz.crmLink||'')}"
-          placeholder="https://crm.wanicki.pl/opportunity/..."
-          oninput="wiz.crmLink=this.value;wizUpdateDocBtn()" style="margin-bottom:0">
-      </div>
-      <div style="border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-bottom:14px">
-        <div style="font-weight:700;font-size:13px;margin-bottom:8px">3. Skan podpisanej umowy <span style="color:var(--red)">*</span></div>
-        ${wiz.scanFile ? `
-          <div style="display:flex;align-items:center;gap:8px;background:var(--green-pale);border:1px solid var(--green);border-radius:6px;padding:10px 12px;font-size:12px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-            <span style="font-weight:600;color:var(--green);flex:1">${escapeHtml(wiz.scanFile.name)}</span>
-            <button class="btn" style="font-size:11px;padding:3px 10px" onclick="wiz.scanFile=null;renderWiz()">Usuń</button>
-          </div>` : `
-          <label class="doc-upload-zone" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px;cursor:pointer;border-radius:8px">
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="wizScanSelected(this)">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span style="font-size:12px;color:var(--gray-500)">Kliknij lub przeciągnij plik (PDF, JPG, PNG)</span>
-          </label>`}
+      <div style="text-align:center;padding:32px 0">
+        <div style="font-size:48px;margin-bottom:16px">⏳</div>
+        <h2 style="font-size:17px;font-weight:700;margin-bottom:8px">Oferta wysłana do RKS</h2>
+        <p style="font-size:13px;color:var(--gray-500);max-width:360px;margin:0 auto 24px">
+          RKS otrzymał powiadomienie o zaproponowanej cenie i musi ją zaakceptować lub zmienić.<br>
+          Dopiero po akceptacji możesz wygenerować i wydrukować umowę.
+        </p>
+        <div style="background:var(--gray-100);border-radius:8px;padding:14px 20px;display:inline-block;text-align:left;min-width:280px">
+          <div style="font-size:12px;color:var(--gray-500);margin-bottom:6px">Szczegóły oferty</div>
+          <div style="font-weight:700;font-size:14px">${m.model}</div>
+          <div style="font-size:12px;color:var(--gray-600)">${klient}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--green);margin-top:4px">${wiz.cenaOferta?wiz.cenaOferta.toLocaleString('pl-PL')+' PLN':''}</div>
+        </div>
       </div>`;
     footer.innerHTML = `
-      <button class="btn" onclick="wizBack()">← Wstecz</button>
       <div class="wiz-footer-spacer"></div>
-      <button id="wizDocSubmit" class="btn primary" ${hasAll?'':'disabled'} onclick="wizStep4Next()">
-        Zatwierdź i zarezerwuj →
+      <button class="btn primary" onclick="switchView('maszyny', document.querySelector('.main-nav-tab'))">
+        Zamknij i wróć do listy
       </button>`;
   }
 
@@ -3997,7 +4053,7 @@ function wizStep3Prepare() {
     document.getElementById('navCountKlienci').textContent = clients.length;
   }
 
-  // Zapisz dane oferty na maszynie (bez zmiany statusu – status zmienimy po wgraniu dokumentów)
+  // Zapisz dane oferty i wyślij do RKS
   const klient = clients.find(c=>c.id===wiz.clientId);
   m.klient      = klient ? klient.nazwa : klientNazwa;
   m.nip         = klient ? klient.nip   : (wiz.newClientData.nip||'');
@@ -4007,9 +4063,13 @@ function wizStep3Prepare() {
     if(m.cena) m.rabat = parseFloat(((1-wiz.cenaOferta/m.cena)*100).toFixed(1));
   }
   if(wiz.ofertaFile) m.oferta_dokument = wiz.ofertaFile.name;
+  if(!wiz.cenaOferta) { showToast('Wpisz proponowaną cenę sprzedaży'); return; }
+  m.status = 'Oferta';
+  renderStepper(); renderStats(); renderTable();
 
   wiz.step = 4;
   renderWiz();
+  showToast('Oferta wysłana do RKS – oczekuje na akceptację ceny', 'green');
 }
 
 function wizStep4Next() {
